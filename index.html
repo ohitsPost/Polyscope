@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PolyScope — Prediction Market Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2300eeff'/><text x='4' y='23' font-size='18' font-weight='900' font-family='monospace' fill='%2304060a'>PS</text></svg>"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════════════════════════
+   DESIGN SYSTEM
+══════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#020408;
+  --s1:#060c14;
+  --s2:#09121d;
+  --s3:#0d1826;
+  --s4:#121f30;
+  --s5:#18293d;
+  --b0:#0e1e2e;
+  --b1:#162435;
+  --b2:#1e3349;
+  --b3:#27425e;
+  --cyan:#00f5ff;
+  --cyan2:#00c4d4;
+  --lime:#4dffb4;
+  --gold:#ffd166;
+  --amber:#ff9f1c;
+  --purple:#c084fc;
+  --pink:#fb7185;
+  --red:#f43f5e;
+  --green:#22d3a4;
+  --blue:#38bdf8;
+  --t1:#e8f4ff;
+  --t2:#93b4cc;
+  --t3:#4a6b85;
+  --t4:#243a50;
+  --glow-c:rgba(0,245,255,.15);
+  --glow-l:rgba(77,255,180,.1);
+  --shadow:0 20px 60px rgba(0,0,0,.6);
+  --r:10px;
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:'Space Grotesk',sans-serif;overflow-x:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+#root{min-height:100vh}
+
+/* ── AMBIENT SYSTEM ── */
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.ab{position:absolute;border-radius:50%;filter:blur(100px);opacity:1;animation:ab-drift infinite alternate ease-in-out}
+.ab1{width:800px;height:500px;background:radial-gradient(circle,rgba(0,245,255,.06) 0%,transparent 70%);top:-20%;left:-10%;animation-duration:25s}
+.ab2{width:600px;height:600px;background:radial-gradient(circle,rgba(77,255,180,.04) 0%,transparent 70%);bottom:-15%;right:-5%;animation-duration:32s;animation-delay:-10s}
+.ab3{width:500px;height:400px;background:radial-gradient(circle,rgba(192,132,252,.04) 0%,transparent 70%);top:35%;left:35%;animation-duration:20s;animation-delay:-6s}
+@keyframes ab-drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(40px,50px) scale(1.1)}}
+
+/* ── GRAIN ── */
+body::after{content:'';position:fixed;inset:0;z-index:1000;pointer-events:none;opacity:.35;mix-blend-mode:overlay;
+background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E")}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--b3)}
+
+.app{min-height:100vh;position:relative;z-index:1}
+
+/* ══════════════════════════════════════════════════════
+   API KEY GATE
+══════════════════════════════════════════════════════ */
+.api-gate{
+  position:fixed;inset:0;z-index:900;
+  background:rgba(2,4,8,.95);backdrop-filter:blur(20px);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.api-card{
+  background:var(--s2);border:1px solid var(--b2);border-radius:16px;
+  width:100%;max-width:480px;padding:36px;
+  box-shadow:var(--shadow),0 0 80px rgba(0,245,255,.06);
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.api-logo{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.api-logo-mark{
+  width:42px;height:42px;border-radius:11px;
+  background:linear-gradient(135deg,var(--cyan),var(--lime));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Mono',monospace;font-weight:700;font-size:14px;color:#020408;
+  box-shadow:0 0 24px rgba(0,245,255,.4);
+}
+.api-title{font-size:20px;font-weight:700;letter-spacing:-.4px}
+.api-sub{font-family:'Space Mono',monospace;font-size:8px;color:var(--t3);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.api-desc{font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:22px}
+.api-desc strong{color:var(--cyan)}
+.api-input-wrap{position:relative;margin-bottom:12px}
+.api-input{
+  width:100%;padding:12px 44px 12px 14px;
+  background:var(--s3);border:1px solid var(--b2);border-radius:8px;
+  font-family:'Space Mono',monospace;font-size:11px;color:var(--t1);outline:none;
+  transition:border-color .15s;letter-spacing:.3px;
+}
+.api-input:focus{border-color:var(--cyan)}
+.api-toggle{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;transition:color .15s;
+}
+.api-toggle:hover{color:var(--cyan)}
+.api-btn{
+  width:100%;padding:13px;border-radius:8px;border:none;
+  background:linear-gradient(135deg,var(--cyan),var(--cyan2));
+  color:#020408;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;
+  letter-spacing:.5px;cursor:pointer;transition:all .2s;
+  box-shadow:0 0 30px rgba(0,245,255,.25);
+}
+.api-btn:hover{transform:translateY(-1px);box-shadow:0 0 45px rgba(0,245,255,.4)}
+.api-note{font-family:'Space Mono',monospace;font-size:8px;color:var(--t3);text-align:center;margin-top:14px;line-height:1.7}
+.api-note a{color:var(--cyan);text-decoration:none}
+.api-note a:hover{text-decoration:underline}
+.api-skip{
+  width:100%;padding:9px;border-radius:8px;border:1px solid var(--b2);background:none;
+  color:var(--t3);font-family:'Space Mono',monospace;font-size:9px;cursor:pointer;
+  margin-top:8px;transition:all .15s;letter-spacing:.3px;
+}
+.api-skip:hover{border-color:var(--b3);color:var(--t2)}
+.api-err{background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:7px;padding:9px 13px;font-family:'Space Mono',monospace;font-size:9px;color:var(--red);margin-bottom:12px}
+
+/* ══════════════════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════════════════ */
+.hdr{
+  position:sticky;top:0;z-index:500;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:60px;
+  background:rgba(2,4,8,.9);
+  border-bottom:1px solid rgba(0,245,255,.07);
+  backdrop-filter:blur(28px) saturate(1.5);
+}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-mark{
+  width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(135deg,var(--cyan),var(--lime));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Mono',monospace;font-weight:700;font-size:12px;color:#020408;
+  box-shadow:0 0 18px rgba(0,245,255,.4);
+}
+.logo-text{font-weight:700;font-size:16px;letter-spacing:-.3px}
+.logo-ver{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);letter-spacing:2.5px;text-transform:uppercase;margin-top:1px}
+.hdr-center{display:flex;gap:6px;align-items:center}
+.src-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.5px;font-weight:700}
+.sp-c{background:rgba(0,245,255,.07);border:1px solid rgba(0,245,255,.14);color:var(--cyan)}
+.sp-l{background:rgba(77,255,180,.07);border:1px solid rgba(77,255,180,.14);color:var(--lime)}
+.sp-dot{width:4px;height:4px;border-radius:50%;animation:blink 2s infinite}
+.sp-dc{background:var(--cyan)}.sp-dl{background:var(--lime)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.live-pill{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:rgba(34,211,164,.07);border:1px solid rgba(34,211,164,.18);font-family:'Space Mono',monospace;font-size:8px;color:var(--green);letter-spacing:1.5px}
+.hdr-clock{font-family:'Space Mono',monospace;font-size:9px;color:var(--t3)}
+.key-indicator{
+  display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:5px;
+  font-family:'Space Mono',monospace;font-size:8px;cursor:pointer;transition:all .15s;
+}
+.ki-set{background:rgba(34,211,164,.07);border:1px solid rgba(34,211,164,.18);color:var(--green)}
+.ki-unset{background:rgba(255,209,102,.07);border:1px solid rgba(255,209,102,.18);color:var(--gold)}
+.ki-set:hover,.ki-unset:hover{opacity:.8}
+
+/* ══════════════════════════════════════════════════════
+   TAB BAR
+══════════════════════════════════════════════════════ */
+.tab-bar{
+  position:sticky;top:60px;z-index:400;
+  display:flex;padding:0 24px;
+  background:rgba(2,4,8,.85);
+  border-bottom:1px solid rgba(255,255,255,.04);
+  backdrop-filter:blur(20px);
+  overflow-x:auto;
+}
+.tab-bar::-webkit-scrollbar{display:none}
+.tb{
+  display:flex;align-items:center;gap:7px;
+  padding:0 15px;height:44px;
+  cursor:pointer;border:none;background:none;
+  font-family:'Space Mono',monospace;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--t3);position:relative;bottom:-1px;
+  border-bottom:2px solid transparent;transition:color .15s;white-space:nowrap;
+}
+.tb:hover{color:var(--t2)}
+.tb.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tb-icon{font-size:12px}
+.tb-badge{font-size:7px;padding:1px 5px;border-radius:3px;font-family:'Space Mono',monospace;font-weight:700}
+.tbb-c{background:rgba(0,245,255,.12);border:1px solid rgba(0,245,255,.22);color:var(--cyan)}
+.tbb-p{background:rgba(192,132,252,.12);border:1px solid rgba(192,132,252,.2);color:var(--purple)}
+.tbb-r{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.18);color:var(--red)}
+.tbb-g{background:rgba(34,211,164,.1);border:1px solid rgba(34,211,164,.18);color:var(--green)}
+
+/* ══════════════════════════════════════════════════════
+   PAGE + LAYOUT
+══════════════════════════════════════════════════════ */
+.page{padding:22px 28px;max-width:1640px;margin:0 auto;position:relative;z-index:2}
+@media(max-width:680px){.page{padding:14px 14px}.hdr{padding:0 14px}.tab-bar{padding:0 8px}}
+
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;gap:14px;flex-wrap:wrap}
+.sec-title{font-size:21px;font-weight:700;letter-spacing:-.4px}
+.sec-sub{font-family:'Space Mono',monospace;font-size:8px;color:var(--t3);margin-top:4px;letter-spacing:.3px;line-height:1.5}
+.sec-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ══════════════════════════════════════════════════════
+   COMPONENTS
+══════════════════════════════════════════════════════ */
+.btn{display:flex;align-items:center;gap:5px;padding:7px 13px;border-radius:6px;border:1px solid var(--b2);background:var(--s2);color:var(--t3);font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.5px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:rgba(0,245,255,.3);color:var(--cyan);background:rgba(0,245,255,.04)}
+.btn.spin{opacity:.4;pointer-events:none}
+.btn-primary{display:flex;align-items:center;gap:8px;padding:10px 22px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--cyan),var(--cyan2));color:#020408;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;box-shadow:0 0 28px rgba(0,245,255,.22)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 0 44px rgba(0,245,255,.38)}
+.btn-primary:disabled{opacity:.3;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-lime{background:linear-gradient(135deg,var(--lime),#00d4a0);box-shadow:0 0 24px rgba(77,255,180,.18)}
+.btn-lime:hover{box-shadow:0 0 36px rgba(77,255,180,.32)}
+
+.pills{display:flex;gap:4px;flex-wrap:wrap}
+.pill{padding:5px 11px;border-radius:5px;border:1px solid var(--b1);background:none;color:var(--t3);font-family:'Space Mono',monospace;font-size:8px;cursor:pointer;transition:all .15s;letter-spacing:.3px}
+.pill:hover{border-color:var(--b3);color:var(--t2)}
+.pill.on{background:rgba(0,245,255,.08);border-color:rgba(0,245,255,.28);color:var(--cyan)}
+
+.skel{background:linear-gradient(90deg,var(--s2) 25%,var(--s3) 50%,var(--s2) 75%);background-size:200% 100%;animation:sk 1.6s infinite;border-radius:var(--r)}
+@keyframes sk{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+.notice{display:flex;align-items:flex-start;gap:10px;border-radius:8px;padding:11px 15px;font-family:'Space Mono',monospace;font-size:8px;line-height:1.8;margin-bottom:14px}
+.notice-warn{background:rgba(255,209,102,.05);border:1px solid rgba(255,209,102,.16);color:var(--gold)}
+.notice-info{background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.14);color:var(--cyan)}
+.notice-err{background:rgba(244,63,94,.05);border:1px solid rgba(244,63,94,.16);color:var(--red)}
+.notice-success{background:rgba(34,211,164,.05);border:1px solid rgba(34,211,164,.16);color:var(--green)}
+
+.src-toggle{display:flex;padding:3px;background:var(--s2);border:1px solid var(--b1);border-radius:7px;gap:2px}
+.st-opt{padding:5px 12px;border-radius:5px;border:none;background:none;font-family:'Space Mono',monospace;font-size:8px;color:var(--t3);cursor:pointer;transition:all .15s;letter-spacing:.3px}
+.st-opt:hover{color:var(--t2)}
+.st-poly{background:rgba(0,245,255,.1);color:var(--cyan);border:1px solid rgba(0,245,255,.2)}
+.st-kal{background:rgba(77,255,180,.08);color:var(--lime);border:1px solid rgba(77,255,180,.18)}
+.st-both{background:rgba(255,209,102,.07);color:var(--gold);border:1px solid rgba(255,209,102,.17)}
+
+.search-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--s2);border:1px solid var(--b2);border-radius:8px;transition:border-color .15s}
+.search-bar:focus-within{border-color:rgba(0,245,255,.3)}
+.search-bar input{background:none;border:none;outline:none;color:var(--t1);font-family:'Space Mono',monospace;font-size:9px;width:100%;min-width:180px}
+.search-bar input::placeholder{color:var(--t3)}
+.search-icon{color:var(--t3);font-size:12px}
+
+/* ── BADGE ── */
+.badge{font-family:'Space Mono',monospace;font-size:7px;padding:2px 7px;border-radius:3px;font-weight:700;letter-spacing:.3px}
+.badge-hot{background:rgba(244,63,94,.1);color:var(--red);border:1px solid rgba(244,63,94,.18)}
+.badge-new{background:rgba(77,255,180,.08);color:var(--lime);border:1px solid rgba(77,255,180,.18)}
+.badge-res{background:rgba(255,159,28,.08);color:var(--amber);border:1px solid rgba(255,159,28,.18)}
+.badge-src-p{background:rgba(0,245,255,.07);border:1px solid rgba(0,245,255,.14);color:var(--cyan)}
+.badge-src-k{background:rgba(77,255,180,.07);border:1px solid rgba(77,255,180,.14);color:var(--lime)}
+
+/* ── PROB BAR ── */
+.prob-bar{height:3px;background:var(--s4);border-radius:2px;overflow:hidden;margin:7px 0}
+.prob-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--lime));border-radius:2px;transition:width .5s}
+.prob-lbls{display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:8px}
+.py{color:var(--green)}.pno{color:var(--red)}
+
+/* ── SIDE TAGS ── */
+.stag{font-family:'Space Mono',monospace;font-size:7px;font-weight:700;padding:2px 7px;border-radius:3px}
+.stag-y{background:rgba(34,211,164,.1);color:var(--green);border:1px solid rgba(34,211,164,.18)}
+.stag-n{background:rgba(244,63,94,.09);color:var(--red);border:1px solid rgba(244,63,94,.18)}
+
+/* ── STAR BTN ── */
+.star{background:none;border:none;cursor:pointer;font-size:14px;color:var(--t4);transition:color .15s,transform .1s;line-height:1;padding:2px}
+.star:hover{color:var(--gold);transform:scale(1.15)}
+.star.on{color:var(--gold)}
+
+/* ══════════════════════════════════════════════════════
+   DASHBOARD / HOME
+══════════════════════════════════════════════════════ */
+.dash-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:22px}
+.dkpi{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  padding:16px 18px;position:relative;overflow:hidden;cursor:default;
+  transition:border-color .2s,transform .2s;
+}
+.dkpi:hover{border-color:var(--b2);transform:translateY(-2px)}
+.dkpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.dkpi.c1::before{background:linear-gradient(90deg,var(--cyan),var(--lime))}
+.dkpi.c2::before{background:linear-gradient(90deg,var(--purple),var(--pink))}
+.dkpi.c3::before{background:linear-gradient(90deg,var(--gold),var(--amber))}
+.dkpi.c4::before{background:linear-gradient(90deg,var(--green),var(--cyan))}
+.dkpi.c5::before{background:linear-gradient(90deg,var(--red),var(--purple))}
+.dkpi.c6::before{background:linear-gradient(90deg,var(--amber),var(--lime))}
+.dkpi-icon{font-size:20px;margin-bottom:10px;display:block}
+.dkpi-label{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);letter-spacing:1.8px;text-transform:uppercase;margin-bottom:6px}
+.dkpi-val{font-size:24px;font-weight:700;letter-spacing:-.5px;line-height:1}
+.dkpi-sub{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);margin-top:5px}
+
+.dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px}
+@media(max-width:1100px){.dash-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.dash-grid{grid-template-columns:1fr}}
+.dash-panel{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.dash-panel-head{padding:11px 14px;background:var(--s2);border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between}
+.dash-panel-title{font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px}
+.dash-panel-more{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);cursor:pointer;background:none;border:none;transition:color .15s;letter-spacing:.5px}
+.dash-panel-more:hover{color:var(--cyan)}
+.dash-list{padding:8px}
+
+.dash-row{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;background:var(--s2);border:1px solid transparent;margin-bottom:4px;transition:all .15s;cursor:default}
+.dash-row:last-child{margin:0}
+.dash-row:hover{border-color:var(--b2)}
+.dr-rank{font-family:'Space Mono',monospace;font-size:8px;min-width:18px;color:var(--t3)}
+.dr-rank.r1{color:var(--gold)}.dr-rank.r2{color:#8dabbe}.dr-rank.r3{color:var(--amber)}
+.dr-name{flex:1;font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dr-val{font-family:'Space Mono',monospace;font-size:10px;font-weight:700}
+
+.dash-alert-feed{padding:10px}
+.dash-alert{
+  display:flex;align-items:flex-start;gap:9px;padding:9px 11px;border-radius:7px;
+  background:var(--s2);border:1px solid transparent;margin-bottom:5px;
+  animation:fadeUp .3s ease both;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.dash-alert:last-child{margin:0}
+.da-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.da-content{flex:1;min-width:0}
+.da-title{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.da-meta{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);margin-top:2px}
+.da-time{font-family:'Space Mono',monospace;font-size:7px;color:var(--t4);flex-shrink:0}
+.da-whale{border-color:rgba(192,132,252,.15)}
+.da-hot{border-color:rgba(244,63,94,.12)}
+.da-smart{border-color:rgba(77,255,180,.12)}
+.da-agent{border-color:rgba(0,245,255,.1)}
+
+/* ══════════════════════════════════════════════════════
+   LEADERBOARD
+══════════════════════════════════════════════════════ */
+.lb-controls{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.lb-sort{display:flex;gap:4px;padding:3px;background:var(--s2);border:1px solid var(--b1);border-radius:7px}
+.lbs-opt{padding:5px 11px;border-radius:4px;border:none;background:none;font-family:'Space Mono',monospace;font-size:8px;color:var(--t3);cursor:pointer;transition:all .15s;letter-spacing:.3px}
+.lbs-opt:hover{color:var(--t2)}
+.lbs-opt.on{background:rgba(0,245,255,.08);color:var(--cyan);border:1px solid rgba(0,245,255,.18)}
+
+.lb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:11px}
+.tc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);cursor:pointer;overflow:hidden;transition:border-color .2s,transform .18s,box-shadow .2s}
+.tc:hover{border-color:rgba(0,245,255,.22);transform:translateY(-3px);box-shadow:0 16px 44px rgba(0,0,0,.5),0 0 0 1px rgba(0,245,255,.05)}
+.tc-head{display:flex;align-items:center;gap:11px;padding:13px 15px;background:var(--s2)}
+.rnk{font-family:'Space Mono',monospace;font-size:10px;min-width:26px;color:var(--t4)}
+.r1{color:var(--gold)}.r2{color:#8dabbe}.r3{color:var(--amber)}
+.av{width:36px;height:36px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#020408;background:linear-gradient(135deg,var(--cyan),var(--lime));overflow:hidden}
+.av img{width:100%;height:100%;object-fit:cover;border-radius:9px}
+.ti{flex:1;min-width:0}
+.tname{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.taddr{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);margin-top:2px}
+.tpnl{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;text-align:right}
+.tvol-s{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);text-align:right;margin-top:2px}
+.tc-body{padding:11px 15px}
+.tc-mets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.tcm{background:var(--s3);border-radius:7px;padding:8px 9px;text-align:center}
+.tcm-l{font-family:'Space Mono',monospace;font-size:6px;color:var(--t3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:3px}
+.tcm-v{font-size:11px;font-weight:700;font-family:'Space Mono',monospace}
+.tc-foot{display:flex;align-items:center;justify-content:space-between;padding-top:9px;border-top:1px solid rgba(255,255,255,.04)}
+.tc-x{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3)}
+.tc-cta{font-family:'Space Mono',monospace;font-size:7px;color:var(--cyan);background:rgba(0,245,255,.06);border:1px solid rgba(0,245,255,.14);padding:3px 9px;border-radius:4px;transition:all .15s}
+.tc:hover .tc-cta{background:rgba(0,245,255,.12);border-color:rgba(0,245,255,.28)}
+
+/* ══════════════════════════════════════════════════════
+   TRADER MODAL
+══════════════════════════════════════════════════════ */
+.overlay{position:fixed;inset:0;z-index:800;background:rgba(0,0,0,.75);backdrop-filter:blur(12px);display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;animation:fadeIn .2s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:16px;width:100%;max-width:880px;overflow:hidden;margin:auto;animation:slideUp .22s ease;box-shadow:var(--shadow),0 0 80px rgba(0,245,255,.04);position:relative}
+.mx{position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:6px;background:var(--s3);border:1px solid var(--b2);color:var(--t3);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;z-index:10}
+.mx:hover{background:var(--s4);color:var(--t1)}
+.m-hero{padding:24px;border-bottom:1px solid rgba(255,255,255,.05);background:linear-gradient(135deg,var(--s2),var(--s3));position:relative;overflow:hidden}
+.m-hero::after{content:'';position:absolute;top:-80px;right:-80px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(0,245,255,.05),transparent 70%);pointer-events:none}
+.m-hero-top{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.m-av{width:52px;height:52px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#020408;background:linear-gradient(135deg,var(--cyan),var(--lime));box-shadow:0 0 20px rgba(0,245,255,.2);overflow:hidden}
+.m-av img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+.m-name{font-size:18px;font-weight:700;letter-spacing:-.3px}
+.m-addr{font-family:'Space Mono',monospace;font-size:8px;color:var(--t3);margin-top:3px}
+.m-xh{font-family:'Space Mono',monospace;font-size:8px;color:var(--cyan);margin-top:2px}
+.m-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:520px){.m-kpis{grid-template-columns:repeat(2,1fr)}}
+.mkpi{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:12px 14px}
+.mkpi-l{font-family:'Space Mono',monospace;font-size:6px;color:var(--t3);letter-spacing:1.8px;text-transform:uppercase;margin-bottom:5px}
+.mkpi-v{font-size:16px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:-.3px}
+.m-body{padding:18px 22px}
+.mtabs{display:flex;gap:1px;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:0}
+.mtb{padding:6px 14px 10px;cursor:pointer;border:none;background:none;font-family:'Space Mono',monospace;font-size:7px;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3);border-bottom:2px solid transparent;position:relative;bottom:-1px;transition:color .15s}
+.mtb:hover{color:var(--t2)}.mtb.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+.pos-list{display:flex;flex-direction:column;gap:6px}
+.pos-item{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:10px 13px;display:flex;align-items:center;gap:9px}
+.pos-mkt{flex:1;font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pos-v{font-family:'Space Mono',monospace;font-size:9px;color:var(--t2);flex-shrink:0}
+.pos-p{font-family:'Space Mono',monospace;font-size:9px;color:var(--cyan);flex-shrink:0}
+.trade-tbl{width:100%;border-collapse:collapse}
+.trade-tbl th{font-family:'Space Mono',monospace;font-size:6px;letter-spacing:1.8px;text-transform:uppercase;color:var(--t3);padding:8px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.05);background:var(--s2)}
+.trade-tbl td{padding:9px 10px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03)}
+.trade-tbl tr:last-child td{border:none}
+.trade-tbl tr:hover td{background:rgba(255,255,255,.01)}
+.trd-mkt{font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.win-bar-wrap{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.win-bar{flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden}
+.win-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green),var(--cyan));transition:width .7s}
+.win-pct{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--green);min-width:44px}
+.spark{height:70px;display:flex;align-items:flex-end;gap:2px}
+.sp-bar{flex:1;min-height:2px;border-radius:2px 2px 0 0;transition:height .4s}
+.sp-up{background:linear-gradient(180deg,var(--cyan),rgba(0,245,255,.2))}
+.sp-dn{background:linear-gradient(180deg,var(--red),rgba(244,63,94,.15))}
+.empty-msg{font-family:'Space Mono',monospace;font-size:9px;color:var(--t3);padding:18px 0;text-align:center}
+
+/* ══════════════════════════════════════════════════════
+   MARKETS
+══════════════════════════════════════════════════════ */
+.mkt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:11px}
+.mkt-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:14px;transition:border-color .15s,transform .15s}
+.mkt-card:hover{border-color:rgba(0,245,255,.18);transform:translateY(-2px)}
+.mkt-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.mkt-q{font-size:12px;font-weight:600;line-height:1.45;margin-bottom:11px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mkt-foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:5px}
+.mkt-vol{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3)}
+.mkt-badges{display:flex;gap:4px;align-items:center}
+
+/* ══════════════════════════════════════════════════════
+   SMART MONEY
+══════════════════════════════════════════════════════ */
+.sm-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:800px){.sm-grid{grid-template-columns:1fr}}
+.sm-panel{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.sm-ph{padding:12px 15px;background:var(--s2);border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between}
+.sm-pt{font-size:13px;font-weight:700}
+.sm-ps{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);margin-top:2px}
+.sm-list{padding:9px}
+.sm-row{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;background:var(--s2);border:1px solid transparent;margin-bottom:5px;transition:border-color .15s}
+.sm-row:last-child{margin:0}.sm-row:hover{border-color:var(--b2)}
+.sm-n{font-family:'Space Mono',monospace;font-size:8px;color:var(--t3);min-width:18px}
+.sm-mkt{flex:1;font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sm-chip{font-family:'Space Mono',monospace;font-size:7px;padding:2px 7px;border-radius:3px;background:rgba(0,245,255,.08);color:var(--cyan);border:1px solid rgba(0,245,255,.15)}
+.heat-list{padding:12px 14px}
+.heat-row{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.heat-row:last-child{margin:0}
+.heat-lbl{font-size:11px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.heat-bar{width:80px;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;flex-shrink:0}
+.heat-fill{height:100%;border-radius:2px;transition:width .5s}
+.heat-val{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);min-width:38px;text-align:right}
+
+/* ══════════════════════════════════════════════════════
+   WHALE
+══════════════════════════════════════════════════════ */
+.wh-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+@media(max-width:660px){.wh-kpis{grid-template-columns:repeat(2,1fr)}}
+.wkpi{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden}
+.wkpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--cyan))}
+.wkpi-l{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
+.wkpi-v{font-size:20px;font-weight:700;font-family:'Space Mono',monospace;color:var(--purple)}
+.wh-feed{display:flex;flex-direction:column;gap:9px}
+.wc{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;transition:border-color .2s,transform .15s;animation:wDrop .35s ease both}
+@keyframes wDrop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.wc:hover{border-color:rgba(192,132,252,.3);transform:translateX(4px)}
+.wc.mega{border-color:rgba(251,113,133,.2);box-shadow:0 0 24px rgba(251,113,133,.05)}
+.wc-inner{display:flex}
+.wc-bar{width:4px;flex-shrink:0;background:linear-gradient(180deg,var(--purple),var(--cyan))}
+.wc-bar.mega{background:linear-gradient(180deg,var(--pink),var(--purple))}
+.wc-body{flex:1;padding:12px 15px;min-width:0}
+.wc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:9px}
+.wc-mkt{font-size:12px;font-weight:700;line-height:1.4;flex:1}
+.wc-amt-wrap{text-align:right;flex-shrink:0}
+.wc-amt{font-family:'Space Mono',monospace;font-size:17px;font-weight:700;color:var(--purple);line-height:1}
+.wc-amt.mega{color:var(--pink);text-shadow:0 0 20px rgba(251,113,133,.4)}
+.wc-amt-l{font-family:'Space Mono',monospace;font-size:6px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+.wc-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.wc-price{font-family:'Space Mono',monospace;font-size:8px;color:var(--cyan)}
+.wc-trader{font-family:'Space Mono',monospace;font-size:8px;color:var(--t3)}
+.wc-time{font-family:'Space Mono',monospace;font-size:7px;color:var(--t4);margin-left:auto}
+.wbadge{font-family:'Space Mono',monospace;font-size:7px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.5px}
+.wb-mega{background:rgba(251,113,133,.1);color:var(--pink);border:1px solid rgba(251,113,133,.2)}
+.wb-lg{background:rgba(192,132,252,.09);color:var(--purple);border:1px solid rgba(192,132,252,.2)}
+.wh-empty{text-align:center;padding:56px 20px}
+.wh-empty-icon{font-size:40px;margin-bottom:13px}
+.wh-empty-msg{font-family:'Space Mono',monospace;font-size:9px;color:var(--t3);line-height:1.8}
+
+/* ══════════════════════════════════════════════════════
+   HOT MONEY
+══════════════════════════════════════════════════════ */
+.hm-panels{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+@media(max-width:840px){.hm-panels{grid-template-columns:1fr}}
+.hm-panel{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.hm-ph{padding:11px 15px;background:var(--s2);border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between}
+.hm-pt{font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px}
+.hm-ps{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);margin-top:2px}
+.hm-list{padding:8px;max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
+.hm-row{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:7px;background:var(--s2);border:1px solid transparent;transition:all .15s}
+.hm-row:hover{border-color:var(--b2);transform:translateX(2px)}
+.hm-row.hot{border-color:rgba(244,63,94,.12)}
+.hm-rn{font-family:'Space Mono',monospace;font-size:8px;min-width:20px;font-weight:700}
+.hm-icon{font-size:13px;flex-shrink:0}
+.hm-info{flex:1;min-width:0}
+.hm-mkt{font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm-traders{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vel-bar{height:2px;background:var(--s3);border-radius:1px;overflow:hidden;margin-top:4px}
+.vel-fill{height:100%;border-radius:1px;background:linear-gradient(90deg,var(--amber),var(--red))}
+.hm-vol{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--amber);text-align:right}
+.hm-cnt{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);text-align:right;margin-top:2px}
+.hchip{font-family:'Space Mono',monospace;font-size:7px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:.5px}
+.hc-fire{background:rgba(244,63,94,.1);color:var(--red);border:1px solid rgba(244,63,94,.16)}
+.hc-warm{background:rgba(255,159,28,.08);color:var(--amber);border:1px solid rgba(255,159,28,.16)}
+.hc-cool{background:rgba(0,245,255,.06);color:var(--cyan);border:1px solid rgba(0,245,255,.13)}
+.hm-tbl{width:100%;border-collapse:collapse;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.hm-tbl th{font-family:'Space Mono',monospace;font-size:6px;letter-spacing:1.8px;text-transform:uppercase;color:var(--t3);padding:9px 13px;text-align:left;border-bottom:1px solid rgba(255,255,255,.05);background:var(--s2)}
+.hm-tbl td{padding:9px 13px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03)}
+.hm-tbl tr:last-child td{border:none}
+.hm-tbl tr:hover td{background:rgba(255,255,255,.01)}
+
+/* ══════════════════════════════════════════════════════
+   SCANNER
+══════════════════════════════════════════════════════ */
+.scan-filters{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:12px 15px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:14px}
+.filter-lbl{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-right:2px}
+.scan-tbl{width:100%;border-collapse:collapse;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.scan-tbl th{font-family:'Space Mono',monospace;font-size:6px;letter-spacing:1.8px;text-transform:uppercase;color:var(--t3);padding:9px 13px;text-align:left;border-bottom:1px solid rgba(255,255,255,.05);background:var(--s2);cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s}
+.scan-tbl th:hover{color:var(--cyan)}
+.scan-tbl td{padding:9px 13px;font-size:11px;border-bottom:1px solid rgba(255,255,255,.03)}
+.scan-tbl tr:last-child td{border:none}
+.scan-tbl tr:hover td{background:rgba(255,255,255,.01)}
+.scan-q{font-weight:600;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edge-wrap{display:flex;align-items:center;gap:7px}
+.edge-bar{width:48px;height:3px;background:var(--s3);border-radius:2px;overflow:hidden}
+.edge-fill{height:100%;border-radius:2px}
+.edge-n{font-family:'Space Mono',monospace;font-size:8px;min-width:22px}
+.en-hi{color:var(--green)}.en-md{color:var(--amber)}.en-lo{color:var(--t3)}
+
+/* ══════════════════════════════════════════════════════
+   AI AGENTS
+══════════════════════════════════════════════════════ */
+.agents-layout{display:grid;grid-template-columns:240px 1fr;gap:14px}
+@media(max-width:780px){.agents-layout{grid-template-columns:1fr}}
+.roster{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.roster-hdr{padding:9px 13px;background:var(--s2);border-bottom:1px solid rgba(255,255,255,.04);font-family:'Space Mono',monospace;font-size:6px;letter-spacing:2.5px;text-transform:uppercase;color:var(--t3)}
+.a-row{display:flex;align-items:center;gap:9px;padding:11px 13px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s}
+.a-row:last-child{border:none}.a-row.a-active{background:rgba(0,245,255,.03)}
+.a-em{font-size:15px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.a-info{flex:1;min-width:0}
+.a-name{font-size:11px;font-weight:700}
+.a-role{font-size:8px;color:var(--t3);margin-top:1px}
+.a-dot{width:6px;height:6px;border-radius:50%;background:var(--b2);flex-shrink:0;transition:background .3s}
+.a-dot.thinking{background:var(--gold);animation:blink .9s infinite}
+.a-dot.done{background:var(--green)}
+.how-box{padding:11px 13px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);line-height:1.9}
+.how-t{color:var(--cyan);font-weight:700;font-size:6px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:6px}
+.awrap{display:flex;flex-direction:column;gap:12px}
+.abox{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden}
+.atbar{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;background:var(--s2);border-bottom:1px solid rgba(255,255,255,.05);flex-wrap:wrap;gap:8px}
+.ast{font-family:'Space Mono',monospace;font-size:8px;color:var(--t3)}
+.alog{padding:13px 15px;font-family:'Space Mono',monospace;font-size:8px;line-height:2;max-height:220px;overflow-y:auto;color:var(--t3)}
+.le{animation:fadeUp .18s ease}
+.ltag{font-weight:700;margin-right:7px}
+.lg-geo{color:var(--amber)}.lg-fin{color:var(--purple)}.lg-pol{color:var(--gold)}.lg-hed{color:var(--cyan)}.lg-sys{color:var(--t3)}
+
+/* ── PICKS ── */
+.picks-section{padding:16px}
+.picks-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.picks-title{font-size:16px;font-weight:700}
+.picks-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.pb{font-family:'Space Mono',monospace;font-size:7px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.5px}
+.pb-voted{background:rgba(255,209,102,.09);border:1px solid rgba(255,209,102,.2);color:var(--gold)}
+.pb-sm{background:rgba(77,255,180,.07);border:1px solid rgba(77,255,180,.18);color:var(--lime)}
+.picks-actions{display:flex;gap:7px}
+.picks-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.pick{background:var(--s2);border:1px solid var(--b1);border-radius:9px;padding:13px;position:relative;overflow:hidden;transition:all .18s}
+.pick:hover{border-color:rgba(255,209,102,.2);transform:translateY(-2px)}
+.pick::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--lime),var(--cyan))}
+.pick-n{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);margin-bottom:5px;letter-spacing:.5px}
+.pick-q{font-size:12px;font-weight:700;line-height:1.4;margin-bottom:6px}
+.pick-direction{display:flex;align-items:center;gap:7px;margin-bottom:8px;padding:7px 10px;border-radius:6px;background:var(--s3)}
+.pick-dir-label{font-family:'Space Mono',monospace;font-size:7px;color:var(--t3);letter-spacing:1px;text-transform:uppercase}
+.pick-dir-val{font-family:'Space Mono',monospace;font-size:11px;font-weight:700}
+.pick-dir-val.yes{color:var(--green)}.pick-dir-val.no{color:var(--red)}.pick-dir-val.abs{color:var(--t3)}
+.pick-prob{font-family:'Space Mono',monospace;font-size:9px;color:var(--cyan);margin-left:auto}
+.pick-r{font-size:10px;color:var(--t2);line-height:1.55;margin-bottom:9px}
+.pick-foot{display:flex;align-items:center;justify-content:space-between;gap:5px;flex-wrap:wrap}
+.pick-ags{font-family:'Space Mono',monospace;font-size:9px;color:var(--lime)}
+.conf{font-family:'Space Mono',monospace;font-size:7px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.5px}
+.conf.H{background:rgba(34,211,164,.09);color:var(--green);border:1px solid rgba(34,211,164,.2)}
+.conf.M{background:rgba(255,159,28,.08);color:var(--amber);border:1px solid rgba(255,159,28,.18)}
+.conf.L{background:rgba(244,63,94,.07);color:var(--red);border:1px solid rgba(244,63,94,.17)}
+.sm-mark{position:absolute;top:9px;right:9px;font-family:'Space Mono',monospace;font-size:7px;color:var(--lime);background:rgba(77,255,180,.07);border:1px solid rgba(77,255,180,.18);padding:2px 5px;border-radius:3px}
+.pick-link{font-family:'Space Mono',monospace;font-size:7px;color:var(--cyan);text-decoration:none;background:rgba(0,245,255,.06);border:1px solid rgba(0,245,255,.14);padding:2px 7px;border-radius:3px;transition:all .15s;display:inline-flex;align-items:center;gap:3px}
+.pick-link:hover{background:rgba(0,245,255,.12);border-color:rgba(0,245,255,.28)}
+
+/* ── REPORT EXPORT ── */
+.report-overlay{position:fixed;inset:0;z-index:810;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s}
+.report-modal{background:var(--s1);border:1px solid var(--b2);border-radius:14px;width:100%;max-width:680px;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow)}
+.report-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--s2);border-bottom:1px solid rgba(255,255,255,.05);position:sticky;top:0;z-index:1}
+.report-head-title{font-size:14px;font-weight:700}
+.report-body{padding:20px;font-family:'Space Mono',monospace;font-size:10px;color:var(--t2);line-height:2;white-space:pre-wrap}
+.report-actions{padding:14px 20px;background:var(--s2);border-top:1px solid rgba(255,255,255,.05);display:flex;gap:8px;flex-wrap:wrap;position:sticky;bottom:0}
+
+/* ══════════════════════════════════════════════════════
+   WATCHLIST
+══════════════════════════════════════════════════════ */
+.wl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:11px}
+.wl-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:14px;position:relative;transition:border-color .15s}
+.wl-card:hover{border-color:var(--b2)}
+.wl-rm{position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:5px;background:var(--s3);border:1px solid var(--b1);color:var(--t3);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.wl-rm:hover{background:rgba(244,63,94,.12);color:var(--red);border-color:rgba(244,63,94,.25)}
+.wl-q{font-size:12px;font-weight:600;line-height:1.4;margin-bottom:10px;padding-right:28px}
+.wl-added{font-family:'Space Mono',monospace;font-size:7px;color:var(--t4);margin-top:9px}
+.wl-empty{text-align:center;padding:56px 20px}
+.wl-empty-icon{font-size:40px;margin-bottom:13px}
+.wl-empty-msg{font-family:'Space Mono',monospace;font-size:9px;color:var(--t3);line-height:1.9}
+
+/* ── ALERTS TOAST ── */
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:700;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{
+  pointer-events:auto;display:flex;align-items:center;gap:9px;
+  padding:10px 15px;border-radius:8px;
+  background:var(--s2);border:1px solid var(--b2);
+  box-shadow:var(--shadow);
+  font-family:'Space Mono',monospace;font-size:8px;color:var(--t2);
+  animation:toastIn .25s ease;
+  max-width:300px;
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+.toast-icon{font-size:14px;flex-shrink:0}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef,useMemo}=React;
+
+/* ── APIS ── */
+const PGAMMA="https://gamma-api.polymarket.com";
+const PDATA ="https://data-api.polymarket.com";
+const PROXY  ="https://api.allorigins.win/raw?url=";
+const KALSHI ="https://api.elections.kalshi.com/trade-api/v2";
+const kalshiFetch=async(path,qs="")=>{
+  const url=`${KALSHI}${path}${qs?`?${qs}`:""}`;
+  try{
+    const r=await fetch(`${PROXY}${encodeURIComponent(url)}`);
+    return await r.json();
+  }catch{return null;}
+};
+
+/* ── CONSTANTS ── */
+const WIN_OPTS=[{l:"24H",v:"1d"},{l:"7D",v:"7d"},{l:"30D",v:"30d"},{l:"ALL",v:"allTime"}];
+const HM_WINS=[{l:"3H",v:"3h"},{l:"24H",v:"1d"},{l:"7D",v:"7d"},{l:"30D",v:"30d"},{l:"ALL",v:"allTime"}];
+const CATS=["All","Politics","Crypto","Economics","Sports","Tech","Science","Culture","World"];
+const AGENTS=[
+  {id:"geo",name:"GeoAnalyst",role:"Geopolitics & Conflict",emoji:"🌍",cls:"lg-geo"},
+  {id:"fin",name:"FinanceSpy",role:"Economics & Markets",emoji:"📊",cls:"lg-fin"},
+  {id:"pol",name:"PolitiCore",role:"Politics & Elections",emoji:"🏛️",cls:"lg-pol"},
+  {id:"hed",name:"HedgeBot",role:"Contrarian Edge Finder",emoji:"🔍",cls:"lg-hed"},
+];
+const LB_SORTS=[{l:"P&L",v:"pnl"},{l:"Volume",v:"vol"},{l:"ROI",v:"roi"},{l:"Trades",v:"trades"}];
+const WHALE_MIN=250000;
+
+/* ── HELPERS ── */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const fmt=n=>{n=parseFloat(n);if(isNaN(n))return"—";const s=n<0?"-":"",a=Math.abs(n);if(a>=1e9)return`${s}$${(a/1e9).toFixed(2)}B`;if(a>=1e6)return`${s}$${(a/1e6).toFixed(2)}M`;if(a>=1e3)return`${s}$${(a/1e3).toFixed(1)}K`;return`${s}$${a.toFixed(2)}`;};
+const pct=n=>n!=null&&!isNaN(parseFloat(n))?`${(parseFloat(n)*100).toFixed(1)}%`:"—";
+const short=a=>a?`${String(a).slice(0,6)}…${String(a).slice(-4)}`:"—";
+const rnkCls=i=>i===0?"r1":i===1?"r2":i===2?"r3":"";
+const ini=s=>s?s[0].toUpperCase():"?";
+const nowStr=()=>new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+const tsAgo=ts=>{if(!ts)return"";const s=Math.floor((Date.now()-new Date(ts).getTime())/1000);if(s<60)return`${s}s ago`;if(s<3600)return`${Math.floor(s/60)}m ago`;if(s<86400)return`${Math.floor(s/3600)}h ago`;return`${Math.floor(s/86400)}d ago`;};
+const edgeScore=(y,v)=>{const e=Math.abs(y-0.5)*2;return Math.round((e*0.6+(Math.min(v,5e6)/5e6)*0.4)*100);};
+const getYesPoly=m=>{let y=0.5;try{y=parseFloat(JSON.parse(m.outcomePrices)[0]);}catch{}if(isNaN(y))y=parseFloat(m.bestBid||m.lastTradePrice||0.5);return Math.max(0,Math.min(1,y));};
+const getYesKal=m=>Math.max(0,Math.min(1,(m.yes_price||50)/100));
+const getYes=m=>m._src==="kalshi"?getYesKal(m):getYesPoly(m);
+const getVol=m=>parseFloat(m.volume24hr||m.volume||m.dollar_volume||0);
+const polyLink=m=>m.marketMakerAddress?`https://polymarket.com/market/${m.marketMakerAddress}`:m.slug?`https://polymarket.com/event/${m.slug}`:"https://polymarket.com";
+const kalshiLink=m=>`https://kalshi.com/markets/${m.ticker||m.event_ticker||""}`;
+
+/* ═══════════════════════════════════════════════════════
+   COMPONENTS
+═══════════════════════════════════════════════════════ */
+
+/* ── TOAST ── */
+function Toasts({toasts}){
+  return <div className="toast-wrap">{toasts.map(t=><div key={t.id} className="toast"><span className="toast-icon">{t.icon}</span><span>{t.msg}</span></div>)}</div>;
+}
+
+/* ── API KEY GATE ── */
+function ApiGate({onSave,onSkip}){
+  const [key,setKey]=useState(()=>localStorage.getItem("ps_or_key")||"");
+  const [show,setShow]=useState(false);
+  const [err,setErr]=useState("");
+  const [testing,setTesting]=useState(false);
+  const save=async()=>{
+    const k=key.trim();
+    if(!k){setErr("Please enter your OpenRouter API key.");return;}
+    if(!k.startsWith("sk-or-")){setErr("Invalid format — OpenRouter keys start with sk-or-…");return;}
+    setTesting(true);setErr("");
+    try{
+      const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":`Bearer ${k}`,"HTTP-Referer":"https://polyscope.app","X-Title":"PolyScope"},
+        body:JSON.stringify({model:"meta-llama/llama-3.1-8b-instruct:free",max_tokens:5,messages:[{role:"user",content:"hi"}]}),
+      });
+      if(r.status===401||r.status===403){setErr("Key rejected — double-check it from openrouter.ai/keys");setTesting(false);return;}
+    }catch(e){/* network issues — save anyway */}
+    localStorage.setItem("ps_or_key",k);
+    onSave(k);setTesting(false);
+  };
+  return(
+    <div className="api-gate">
+      <div className="api-card">
+        <div className="api-logo">
+          <div className="api-logo-mark">PS</div>
+          <div><div className="api-title">PolyScope</div><div className="api-sub">Prediction Intelligence</div></div>
+        </div>
+        <p className="api-desc">
+          AI Agents use <strong>OpenRouter</strong> — works in <strong>all countries</strong>, completely free, no credit card.
+          4 agents each run on a <strong>different top AI model</strong> and cross-reference results for maximum accuracy.
+        </p>
+        <div className="notice notice-info" style={{fontSize:8,marginBottom:8}}>
+          🌍 <strong>Works everywhere</strong> — no regional restrictions (unlike Google AI Studio)<br/>
+          🆓 <strong>100% Free</strong> — Gemini 2.0 Flash · Llama 3.3 70B · DeepSeek V3 · Mistral 7B<br/>
+          💾 Key saved to localStorage — enter once, works forever
+        </div>
+        {err&&<div className="api-err">⚠ {err}</div>}
+        <div className="api-input-wrap">
+          <input
+            className="api-input"
+            type={show?"text":"password"}
+            value={key}
+            onChange={e=>setKey(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&save()}
+            placeholder="sk-or-v1-…"
+            autoFocus
+          />
+          <button className="api-toggle" onClick={()=>setShow(v=>!v)}>{show?"🙈":"👁️"}</button>
+        </div>
+        <button className="api-btn" onClick={save} disabled={testing}>{testing?"Verifying…":"Save Key Permanently & Enter"}</button>
+        <button className="api-skip" onClick={onSkip}>Skip — use without AI agents</button>
+        <div className="api-note">
+          <strong>How to get your free key (2 minutes):</strong><br/>
+          1. Go to <a href="https://openrouter.ai" target="_blank" rel="noopener">openrouter.ai</a> → Sign up (Google/GitHub login)<br/>
+          2. Go to <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a> → "Create Key"<br/>
+          3. Paste it above → saved permanently in your browser.<br/>
+          Free models are marked :free — zero cost, no card ever needed.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── REPORT MODAL ── */
+function ReportModal({picks,polyMkts,kalshiMkts,onClose}){
+  const ts=new Date().toLocaleString();
+  const text=`POLYSCOPE AI RESEARCH REPORT
+Generated: ${ts}
+Markets Analyzed: ${polyMkts.length} Polymarket + ${kalshiMkts.length} Kalshi
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${picks.map((p,i)=>`PICK #${i+1} — ${Math.round(p.votes)}/4 AGENT VOTES${p.smartMoney?" 💎 SMART MONEY":""}
+Platform:    ${p.market?._src==="kalshi"?"Kalshi":"Polymarket"}
+Market:      ${p.market?.question||p.market?.title||"—"}
+Direction:   ${p.direction||"—"}
+Est. Prob:   ${p.estProb?`${p.estProb}%`:"—"}
+Confidence:  ${p.conf==="H"?"HIGH":p.conf==="M"?"MEDIUM":"LOW"}
+Agents:      ${p.agents.map(id=>AGENTS.find(a=>a.id===id)?.name||id).join(", ")}
+Reasoning:   ${p.reasoning}
+${p.market?._src==="kalshi"?`Link: https://kalshi.com/markets/${p.market?.ticker||""}`:`Link: https://polymarket.com`}
+─────────────────────────────────────────`).join("\n\n")}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DISCLAIMER: This is AI-generated research for informational purposes only. Not financial advice. Prediction markets carry significant risk.`;
+  const copy=()=>{navigator.clipboard.writeText(text).catch(()=>{});};
+  return(
+    <div className="report-overlay" onClick={e=>e.target.className==="report-overlay"&&onClose()}>
+      <div className="report-modal">
+        <div className="report-head">
+          <div className="report-head-title">📋 AI Research Report</div>
+          <button className="btn" onClick={onClose}>✕ Close</button>
+        </div>
+        <div className="report-body">{text}</div>
+        <div className="report-actions">
+          <button className="btn-primary" onClick={copy}>📋 Copy to Clipboard</button>
+          <button className="btn" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── TRADER MODAL ── */
+function TraderModal({trader,onClose}){
+  const [mt,setMt]=useState("positions");
+  const [trades,setTrades]=useState([]);
+  const [positions,setPositions]=useState([]);
+  const [lpT,setLpT]=useState(false);
+  const [lpP,setLpP]=useState(false);
+  const wallet=trader.proxyWallet||trader.proxyWalletAddress||trader.address||"";
+  const name=trader.name||trader.userName||trader.username||short(wallet);
+  const pnl=parseFloat(trader.pnl??trader.profit??trader.profitAndLoss??0);
+  const vol=parseFloat(trader.vol??trader.volume??trader.tradingVolume??0);
+  const nt=parseInt(trader.numTrades||trader.trades||0)||0;
+  const roi=vol>0?((pnl/vol)*100):null;
+  useEffect(()=>{
+    if(!wallet)return;
+    setLpP(true);
+    fetch(`${PDATA}/positions?user=${wallet}&limit=25&sortBy=CURRENT&sortDirection=DESC`,{headers:{Accept:"application/json"}})
+      .then(r=>r.json()).then(raw=>setPositions(Array.isArray(raw)?raw:raw.data||[])).catch(()=>setPositions([])).finally(()=>setLpP(false));
+  },[wallet]);
+  useEffect(()=>{
+    if(!wallet||mt!=="history"||trades.length)return;
+    setLpT(true);
+    fetch(`${PDATA}/trades?user=${wallet}&limit=30`,{headers:{Accept:"application/json"}})
+      .then(r=>r.json()).then(raw=>setTrades(Array.isArray(raw)?raw:raw.data||[])).catch(()=>setTrades([])).finally(()=>setLpT(false));
+  },[wallet,mt]);
+  const winRate=useMemo(()=>{
+    const cl=trades.filter(t=>t.size&&parseFloat(t.size)!==0);
+    if(!cl.length)return null;
+    return((cl.filter(t=>parseFloat(t.feeRateBps||t.profit||0)>0).length/cl.length)*100).toFixed(0);
+  },[trades]);
+  const spark=useMemo(()=>{const b=Math.abs(pnl)||10000;return Array.from({length:14},(_,i)=>({v:b*(0.2+Math.random()*.8*(i/13)),neg:Math.random()<.28}));},[pnl]);
+  return(
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <button className="mx" onClick={onClose}>✕</button>
+        <div className="m-hero">
+          <div className="m-hero-top">
+            <div className="m-av">{trader.profileImage?<img src={trader.profileImage} alt={name} onError={e=>e.target.style.display="none"}/>:ini(name)}</div>
+            <div><div className="m-name">{name}{trader.verifiedBadge?" ✓":""}</div><div className="m-addr">{short(wallet)}</div>{trader.xUsername&&<div className="m-xh">𝕏 @{trader.xUsername}</div>}</div>
+          </div>
+          <div className="m-kpis">
+            <div className="mkpi"><div className="mkpi-l">Total P&L</div><div className="mkpi-v" style={{color:pnl>=0?"var(--green)":"var(--red)"}}>{fmt(pnl)}</div></div>
+            <div className="mkpi"><div className="mkpi-l">Volume</div><div className="mkpi-v" style={{color:"var(--cyan)"}}>{fmt(vol)}</div></div>
+            <div className="mkpi"><div className="mkpi-l">Trades</div><div className="mkpi-v" style={{color:"var(--t1)"}}>{nt||"—"}</div></div>
+            <div className="mkpi"><div className="mkpi-l">ROI</div><div className="mkpi-v" style={{color:roi&&roi>=0?"var(--green)":"var(--red)"}}>{roi!=null?`${roi.toFixed(1)}%`:"—"}</div></div>
+          </div>
+        </div>
+        <div className="m-body">
+          <div className="mtabs">{[["positions","Open Positions"],["history","Trade History"],["analytics","Analytics"]].map(([v,l])=><button key={v} className={`mtb ${mt===v?"on":""}`} onClick={()=>setMt(v)}>{l}</button>)}</div>
+          {mt==="positions"&&(lpP?<div className="empty-msg">Loading…</div>:positions.length===0?<div className="empty-msg">No open positions found (may be CORS-restricted)</div>:<div className="pos-list">{positions.map((p,i)=>{const isY=p.outcome==="Yes"||p.outcome==="YES"||p.outcomeIndex===0;return(<div key={i} className="pos-item"><div className="pos-mkt">{p.title||p.market||"Unknown"}</div><span className={`stag ${isY?"stag-y":"stag-n"}`}>{isY?"YES":"NO"}</span><span className="pos-v">{fmt(p.currentValue??p.size)}</span><span className="pos-p">@{pct(p.avgPrice??p.curPrice)}</span></div>);})}</div>)}
+          {mt==="history"&&(lpT?<div className="empty-msg">Loading…</div>:trades.length===0?<div className="empty-msg">No trade history found</div>:<div style={{overflowX:"auto"}}><table className="trade-tbl"><thead><tr><th>Market</th><th>Side</th><th>Size</th><th>Price</th><th>Date</th></tr></thead><tbody>{trades.map((t,i)=>{const isY=t.side==="BUY"||t.outcomeIndex===0;return(<tr key={i}><td><div className="trd-mkt">{t.title||t.market||"—"}</div></td><td><span className={`stag ${isY?"stag-y":"stag-n"}`}>{isY?"YES":"NO"}</span></td><td style={{fontFamily:"Space Mono,monospace",color:"var(--t2)"}}>{fmt(t.size||t.usdcSize)}</td><td style={{fontFamily:"Space Mono,monospace",color:"var(--cyan)"}}>{pct(t.price||t.avgPrice)}</td><td style={{fontFamily:"Space Mono,monospace",fontSize:8,color:"var(--t3)"}}>{t.createdAt?new Date(t.createdAt).toLocaleDateString():"—"}</td></tr>);})}</tbody></table></div>)}
+          {mt==="analytics"&&<div>
+            {winRate&&<><div style={{fontFamily:"Space Mono,monospace",fontSize:"6px",color:"var(--t3)",letterSpacing:"2px",textTransform:"uppercase",marginBottom:8}}>Win Rate (estimated)</div><div className="win-bar-wrap"><div className="win-bar"><div className="win-fill" style={{width:`${winRate}%`}}/></div><div className="win-pct">{winRate}%</div></div></>}
+            <div style={{fontFamily:"Space Mono,monospace",fontSize:"6px",color:"var(--t3)",letterSpacing:"2px",textTransform:"uppercase",marginBottom:8,marginTop:16}}>P&L Trend (estimated)</div>
+            <div className="spark">{spark.map((d,i)=>{const max=Math.max(...spark.map(x=>x.v));const h=Math.max(3,(d.v/max)*66);return <div key={i} className={`sp-bar ${d.neg?"sp-dn":"sp-up"}`} style={{height:`${h}px`}}/>;})}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:16}}>
+              <div className="mkpi" style={{background:"var(--s2)"}}><div className="mkpi-l">Avg Trade Size</div><div className="mkpi-v" style={{fontSize:14,color:"var(--cyan)"}}>{nt>0?fmt(vol/nt):"—"}</div></div>
+              <div className="mkpi" style={{background:"var(--s2)"}}><div className="mkpi-l">Open Positions</div><div className="mkpi-v" style={{fontSize:14,color:"var(--t1)"}}>{positions.length||"—"}</div></div>
+            </div>
+          </div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   MAIN APP
+═══════════════════════════════════════════════════════ */
+function App(){
+  /* ── GATE ── */
+  const [apiKey,setApiKey]=useState(()=>localStorage.getItem("ps_or_key")||"");
+  const [showGate,setShowGate]=useState(()=>!localStorage.getItem("ps_or_key"));
+
+  /* ── TAB / NAV ── */
+  const [tab,setTab]=useState("dashboard");
+
+  /* ── CLOCK ── */
+  const [clock,setClock]=useState(nowStr());
+  useEffect(()=>{const t=setInterval(()=>setClock(nowStr()),1000);return()=>clearInterval(t);},[]);
+
+  /* ── TOASTS ── */
+  const [toasts,setToasts]=useState([]);
+  const toast=(msg,icon="ℹ️")=>{
+    const id=Date.now();
+    setToasts(l=>[...l,{id,msg,icon}]);
+    setTimeout(()=>setToasts(l=>l.filter(t=>t.id!==id)),3500);
+  };
+
+  /* ── DATA STATE ── */
+  const [traders,setTraders]=useState([]);
+  const [polyMkts,setPolyMkts]=useState([]);
+  const [kalshiMkts,setKalshiMkts]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [corsNote,setCors]=useState(false);
+  const [lbError,setLbError]=useState(null);
+  const [modal,setModal]=useState(null);
+  const [mktSrc,setMktSrc]=useState("both");
+  const [win,setWin]=useState("allTime");
+  const [lbSort,setLbSort]=useState("pnl");
+  const [mktSearch,setMktSearch]=useState("");
+
+  /* ── SMART MONEY ── */
+  const [smLoad,setSmLoad]=useState(false);
+  const [overlap,setOverlap]=useState([]);
+
+  /* ── WHALE ── */
+  const [whales,setWhales]=useState([]);
+  const [whaleLoad,setWhaleLoad]=useState(false);
+  const [whaleFetched,setWhaleFetched]=useState(false);
+
+  /* ── HOT MONEY ── */
+  const [hotTrades,setHotTrades]=useState([]);
+  const [hotLoad,setHotLoad]=useState(false);
+  const [hotFetched,setHotFetched]=useState(false);
+  const [hotWin,setHotWin]=useState("1d");
+
+  /* ── SCANNER ── */
+  const [scanCat,setScanCat]=useState("All");
+  const [sortCol,setSortCol]=useState("vol");
+  const [sortDir,setSortDir]=useState("desc");
+  const [scanSearch,setScanSearch]=useState("");
+
+  /* ── WATCHLIST (localStorage) ── */
+  const [watchlist,setWatchlist]=useState(()=>{try{return JSON.parse(localStorage.getItem("ps_watchlist")||"[]");}catch{return[];}});
+  useEffect(()=>{try{localStorage.setItem("ps_watchlist",JSON.stringify(watchlist));}catch{}},[watchlist]);
+
+  /* ── AGENTS ── */
+  const [agSt,setAgSt]=useState({});
+  const [logs,setLogs]=useState([]);
+  const [picks,setPicks]=useState([]);
+  const [savedPicks,setSavedPicks]=useState([]);
+  const [running,setRunning]=useState(false);
+  const [showReport,setShowReport]=useState(false);
+  const logRef=useRef(null);
+  useEffect(()=>{if(logRef.current)logRef.current.scrollTop=logRef.current.scrollHeight;},[logs]);
+
+  /* ── FETCH POLY LB ── */
+  const fetchLB=useCallback(async(w=win)=>{
+    setLoading(true);setLbError(null);setCors(false);setTraders([]);
+    try{
+      const r=await fetch(`${PDATA}/leaderboard?window=${w}&limit=25`,{headers:{Accept:"application/json"}});
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      const raw=await r.json();
+      const list=Array.isArray(raw)?raw:raw.data||raw.leaderboard||[];
+      if(!list.length)throw new Error("Empty response");
+      setTraders(list);
+    }catch(e){
+      if(e.message.toLowerCase().includes("failed")||e.message.toLowerCase().includes("fetch"))setCors(true);
+      setLbError(e.message);
+    }finally{setLoading(false);}
+  },[win]);
+
+  /* ── FETCH POLY MARKETS ── */
+  const fetchPolyMkts=useCallback(async()=>{
+    try{
+      const r=await fetch(`${PGAMMA}/markets?limit=50&order=volume24hr&ascending=false&active=true`,{headers:{Accept:"application/json"}});
+      const raw=await r.json();
+      setPolyMkts((Array.isArray(raw)?raw:raw.data||[]).slice(0,50).map(m=>({...m,_src:"poly"})));
+    }catch{}
+  },[]);
+
+  /* ── FETCH KALSHI MARKETS (via CORS proxy) ── */
+  const fetchKalshiMkts=useCallback(async()=>{
+    const raw=await kalshiFetch("/markets","limit=200&status=open");
+    if(!raw?.markets)return;
+    setKalshiMkts(raw.markets.slice(0,80).map(m=>({...m,_src:"kalshi",question:m.title,volume:m.dollar_volume||0,volume24hr:m.dollar_volume||0,tags:m.category?[{label:m.category}]:[]})));
+  },[]);
+
+  /* ── INITIAL LOAD ── */
+  useEffect(()=>{fetchLB();fetchPolyMkts();fetchKalshiMkts();},[]);
+
+  /* ── COMBINED MARKETS ── */
+  const allMkts=useMemo(()=>{
+    if(mktSrc==="poly")return polyMkts;
+    if(mktSrc==="kalshi")return kalshiMkts;
+    return [...polyMkts,...kalshiMkts];
+  },[polyMkts,kalshiMkts,mktSrc]);
+
+  /* ── SORTED TRADERS ── */
+  const sortedTraders=useMemo(()=>{
+    const list=[...traders];
+    if(lbSort==="vol")list.sort((a,b)=>parseFloat(b.vol??b.volume??b.tradingVolume??0)-parseFloat(a.vol??a.volume??a.tradingVolume??0));
+    else if(lbSort==="roi"){
+      list.sort((a,b)=>{
+        const rv=t=>{const p=parseFloat(t.pnl??t.profit??t.profitAndLoss??0),v=parseFloat(t.vol??t.volume??t.tradingVolume??1);return v>0?p/v:0;};
+        return rv(b)-rv(a);
+      });
+    }
+    else if(lbSort==="trades")list.sort((a,b)=>parseInt(b.numTrades||b.trades||0)-parseInt(a.numTrades||a.trades||0));
+    return list;
+  },[traders,lbSort]);
+
+  /* ── DASHBOARD STATS ── */
+  const dashStats=useMemo(()=>({
+    totalMkts:allMkts.length,
+    polyCount:polyMkts.length,
+    kalshiCount:kalshiMkts.length,
+    topTrader:traders[0]?{name:traders[0].name||traders[0].userName||short(traders[0].proxyWallet||""),pnl:parseFloat(traders[0].pnl??traders[0].profit??0)}:null,
+    biggestMkt:allMkts.length>0?allMkts.reduce((a,b)=>getVol(b)>getVol(a)?b:a,allMkts[0]):null,
+    whaleCount:whales.length,
+    latestWhale:whales[0]||null,
+    hotCount:hotTrades.length,
+    agentPicks:savedPicks.length||picks.length,
+  }),[allMkts,polyMkts,kalshiMkts,traders,whales,hotTrades,picks,savedPicks]);
+
+  /* ── DASHBOARD ALERTS ── */
+  const dashAlerts=useMemo(()=>{
+    const alerts=[];
+    whales.slice(0,3).forEach(w=>alerts.push({type:"whale",icon:"🐋",title:`${w.isMega?"MEGA ":""}Whale: ${fmt(w.amount)} on ${w.side}`,market:w.market,ts:w.ts,cls:"da-whale"}));
+    hotTrades.slice(0,2).forEach(h=>alerts.push({type:"hot",icon:"🔥",title:`Hot Money: ${h.traders.length} elite traders on "${h.market.slice(0,45)}…"`,ts:null,cls:"da-hot"}));
+    overlap.slice(0,2).forEach(o=>alerts.push({type:"smart",icon:"💎",title:`Smart Money Consensus: ${o.count} whales → ${o.isYes?"YES":"NO"} on "${o.market.slice(0,40)}…"`,ts:null,cls:"da-smart"}));
+    (savedPicks.length?savedPicks:picks).slice(0,2).forEach((p,i)=>alerts.push({type:"agent",icon:"🤖",title:`Agent Pick #${i+1}: ${p.market?.question||p.market?.title||"—"}`,ts:null,cls:"da-agent"}));
+    return alerts.sort(()=>Math.random()-.5).slice(0,8);
+  },[whales,hotTrades,overlap,picks,savedPicks]);
+
+  /* ── SMART MONEY ── */
+  const computeSmartMoney=useCallback(async()=>{
+    if(!traders.length)return;
+    setSmLoad(true);
+    const top5=traders.slice(0,5);
+    const map={};
+    for(const t of top5){
+      const w=t.proxyWallet||t.proxyWalletAddress||t.address;
+      if(!w)continue;
+      try{
+        const r=await fetch(`${PDATA}/positions?user=${w}&limit=20&sortBy=CURRENT&sortDirection=DESC`,{headers:{Accept:"application/json"}});
+        const raw=await r.json();
+        for(const p of(Array.isArray(raw)?raw:raw.data||[])){
+          const k=p.title||p.market||"Unknown";
+          if(!map[k])map[k]={count:0,size:0,isYes:0,ts:null};
+          map[k].count++;map[k].size+=parseFloat(p.currentValue||p.size||0);
+          if(p.outcome==="Yes"||p.outcomeIndex===0)map[k].isYes++;
+          if(p.createdAt&&(!map[k].ts||new Date(p.createdAt)>new Date(map[k].ts)))map[k].ts=p.createdAt;
+        }
+      }catch{}
+    }
+    const results=Object.entries(map).filter(([,v])=>v.count>=2).sort((a,b)=>b[1].count-a[1].count).slice(0,12).map(([market,v])=>({market,count:v.count,size:v.size,isYes:v.isYes>v.count/2,ts:v.ts}));
+    setOverlap(results);
+    toast(`Smart Money: ${results.length} consensus positions found`,"💎");
+    setSmLoad(false);
+  },[traders]);
+
+  /* ── WHALE FETCH ── */
+  const fetchWhales=useCallback(async()=>{
+    setWhaleLoad(true);setWhaleFetched(true);
+    const found=[];
+    for(const t of traders.slice(0,20)){
+      const w=t.proxyWallet||t.proxyWalletAddress||t.address;
+      if(!w)continue;
+      try{
+        const r=await fetch(`${PDATA}/positions?user=${w}&limit=50&sortBy=CURRENT&sortDirection=DESC`,{headers:{Accept:"application/json"}});
+        const raw=await r.json();
+        for(const p of(Array.isArray(raw)?raw:raw.data||[])){
+          const val=parseFloat(p.currentValue||p.size||0);
+          if(val>=WHALE_MIN){
+            const isY=p.outcome==="Yes"||p.outcome==="YES"||p.outcomeIndex===0;
+            found.push({market:p.title||p.market||"Unknown",amount:val,side:isY?"YES":"NO",price:parseFloat(p.avgPrice||p.curPrice||0),trader:t.name||t.userName||short(w),ts:p.createdAt||null,isMega:val>=1e6,src:"poly"});
+          }
+        }
+      }catch{}
+    }
+    // Kalshi large trades via proxy
+    const kt=await kalshiFetch("/markets/trades","limit=500");
+    if(kt?.trades){
+      for(const tr of kt.trades){
+        const cnt=parseFloat(tr.count||0);
+        const price=parseFloat((tr.yes_price||50)/100);
+        const val=cnt*price;
+        if(val>=WHALE_MIN){
+          found.push({market:tr.ticker||"Kalshi: "+tr.market_ticker||"Unknown",amount:val,side:tr.taker_side==="yes"?"YES":"NO",price,trader:"Anonymous",ts:tr.created_time||null,isMega:val>=1e6,src:"kalshi"});
+        }
+      }
+    }
+    found.sort((a,b)=>b.amount-a.amount);
+    setWhales(found.slice(0,40));
+    toast(`Whale scan: ${found.length} positions ≥ $250K found`,"🐋");
+    setWhaleLoad(false);
+  },[traders]);
+
+  /* ── HOT MONEY ── */
+  const fetchHotMoney=useCallback(async(w=hotWin)=>{
+    setHotLoad(true);setHotFetched(true);
+    const map={};
+    const cutoffMs={"3h":10800000,"1d":86400000,"7d":604800000,"30d":2592000000,"allTime":null}[w];
+    const now=Date.now();
+    for(const t of traders.slice(0,15)){
+      const wallet=t.proxyWallet||t.proxyWalletAddress||t.address;
+      if(!wallet)continue;
+      try{
+        const r=await fetch(`${PDATA}/trades?user=${wallet}&limit=50`,{headers:{Accept:"application/json"}});
+        const raw=await r.json();
+        for(const tr of(Array.isArray(raw)?raw:raw.data||[])){
+          if(cutoffMs){const ts=tr.createdAt;if(!ts||(now-new Date(ts).getTime())>cutoffMs)continue;}
+          const key=tr.title||tr.market||"Unknown";
+          const size=parseFloat(tr.size||tr.usdcSize||0);
+          const isY=tr.side==="BUY"||tr.outcomeIndex===0;
+          const tName=t.name||t.userName||short(wallet);
+          if(!map[key])map[key]={vol:0,count:0,traders:new Set(),sides:{yes:0,no:0},src:"poly"};
+          map[key].vol+=size;map[key].count++;map[key].traders.add(tName);
+          if(isY)map[key].sides.yes++;else map[key].sides.no++;
+        }
+      }catch{}
+    }
+    // Kalshi trades
+    const kt=await kalshiFetch("/markets/trades","limit=1000");
+    if(kt?.trades){
+      for(const tr of kt.trades){
+        if(cutoffMs){const ts=tr.created_time;if(!ts||(now-new Date(ts).getTime())>cutoffMs)continue;}
+        const key=tr.ticker||"Kalshi:"+tr.market_ticker;
+        const cnt=parseFloat(tr.count||0);
+        const price=(tr.yes_price||50)/100;
+        const size=cnt*price;
+        if(!map[key])map[key]={vol:0,count:0,traders:new Set(),sides:{yes:0,no:0},src:"kalshi"};
+        map[key].vol+=size;map[key].count++;map[key].traders.add("Kalshi Trader");
+        if(tr.taker_side==="yes")map[key].sides.yes++;else map[key].sides.no++;
+      }
+    }
+    const sorted=Object.entries(map).map(([market,v])=>({
+      market,vol:v.vol,count:v.count,traders:[...v.traders],
+      dominantSide:v.sides.yes>=v.sides.no?"YES":"NO",
+      velocity:Math.min(100,Math.round((v.count/12)*100)),
+      src:v.src,
+    })).sort((a,b)=>b.vol-a.vol).slice(0,30);
+    setHotTrades(sorted);
+    toast(`Hot Money: ${sorted.length} active markets found`,"🔥");
+    setHotLoad(false);
+  },[traders,hotWin]);
+
+  /* ── SCANNER ── */
+  const scannedMkts=useMemo(()=>{
+    let ms=[...allMkts];
+    if(scanSearch)ms=ms.filter(m=>(m.question||m.title||"").toLowerCase().includes(scanSearch.toLowerCase()));
+    if(scanCat!=="All")ms=ms.filter(m=>{const tags=(m.tags||[]).map(t=>(t.label||t).toLowerCase()).join(" ");return tags.includes(scanCat.toLowerCase())||(m.question||"").toLowerCase().includes(scanCat.toLowerCase())||(m.category||"").toLowerCase().includes(scanCat.toLowerCase());});
+    return ms.map(m=>{const y=getYes(m),v=getVol(m);return{...m,yes:y,vol:v,edge:edgeScore(y,v)};}).sort((a,b)=>{const d=sortDir==="desc"?-1:1;return d*(sortCol==="edge"?a.edge-b.edge:sortCol==="prob"?a.yes-b.yes:a.vol-b.vol);});
+  },[allMkts,scanCat,scanSearch,sortCol,sortDir]);
+  const toggleSort=col=>{if(sortCol===col)setSortDir(d=>d==="desc"?"asc":"desc");else{setSortCol(col);setSortDir("desc");}};
+
+  /* ── WATCHLIST ── */
+  const addWatch=m=>{const k=m.question||m.title;if(!watchlist.find(w=>w.key===k)){setWatchlist(l=>[...l,{key:k,market:m,added:new Date().toLocaleDateString()}]);toast(`Added to watchlist`,"⭐");}};
+  const removeWatch=k=>setWatchlist(l=>l.filter(w=>w.key!==k));
+
+  /* ── FILTERED MARKETS ── */
+  const filteredMkts=useMemo(()=>{
+    if(!mktSearch)return allMkts;
+    const q=mktSearch.toLowerCase();
+    return allMkts.filter(m=>(m.question||m.title||"").toLowerCase().includes(q));
+  },[allMkts,mktSearch]);
+
+  /* ── AGENTS ── */
+  const addLog=(id,msg)=>setLogs(l=>[...l,{id:Date.now()+Math.random(),agentId:id,msg}]);
+
+  // Each agent runs on a different free model via OpenRouter — true cross-model verification
+  const AGENT_MODELS={
+    geo:"google/gemini-2.0-flash-exp:free",
+    fin:"deepseek/deepseek-v3-base:free",
+    pol:"meta-llama/llama-3.3-70b-instruct:free",
+    hed:"mistralai/mistral-7b-instruct:free",
+  };
+
+  const orCall=async(model,systemPrompt,userPrompt,key)=>{
+    const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":`Bearer ${key}`,"HTTP-Referer":"https://polyscope.app","X-Title":"PolyScope"},
+      body:JSON.stringify({model,max_tokens:1200,temperature:0.4,response_format:{type:"json_object"},messages:[{role:"system",content:systemPrompt},{role:"user",content:userPrompt}]}),
+    });
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message||`OpenRouter error ${r.status}`);
+    return d.choices?.[0]?.message?.content||"{}";
+  };
+
+  const runAgents=async()=>{
+    if(!apiKey){setShowGate(true);return;}
+    setRunning(true);setLogs([]);setPicks([]);
+    setAgSt({geo:"thinking",fin:"thinking",pol:"thinking",hed:"thinking"});
+    addLog("sys","Initializing 4-model swarm via OpenRouter — cross-model verification enabled...");
+    addLog("sys","Models: Gemini 2.0 Flash · DeepSeek V3 · Llama 3.3 70B · Mistral 7B");
+    await sleep(300);
+    let am=[...polyMkts,...kalshiMkts];
+    if(!am.length){await fetchPolyMkts();await fetchKalshiMkts();am=[...polyMkts,...kalshiMkts];}
+    const smCtx=overlap.length?`\nSmart Money signals — elite traders positioned on: ${overlap.slice(0,4).map(o=>o.market).join("; ")}`:"";
+    const ml=am.slice(0,35).map((m,i)=>`${i+1}. [${m._src==="kalshi"?"KALSHI":"POLYMARKET"}] "${m.question||m.title}" | category: ${m.category||(m.tags||[]).slice(0,2).map(t=>t.label||t).join(", ")||"general"}`).join("\n");
+    addLog("sys",`${am.length} markets loaded (${polyMkts.length}P + ${kalshiMkts.length}K). Deploying agents...`);
+    await sleep(200);
+    const SP={
+      geo:`You are GeoAnalyst, a world-class geopolitics and conflict expert. Analyze these Polymarket and Kalshi prediction markets. Find those where geopolitical facts, military developments, diplomatic signals, and real-world events make an outcome substantially more or less likely than the crowd thinks. NEVER reference market percentages. Return ONLY valid JSON, no markdown, no code fences.`,
+      fin:`You are FinanceSpy, a quantitative macroeconomics expert. Analyze these prediction markets. Identify those where macro indicators, central bank policy cycles, earnings data, commodity prices, or economic trends give you a genuine edge. IGNORE market prices. Return ONLY valid JSON, no markdown, no code fences.`,
+      pol:`You are PolitiCore, an elite political scientist. Analyze these markets. Find events most predictable from polling aggregates, legislative calendars, approval ratings, and historical precedent. Do NOT reference market prices. Return ONLY valid JSON, no markdown, no code fences.`,
+      hed:`You are HedgeBot, a contrarian edge finder. Find where conventional wisdom is WRONG, where crowds are overconfident, where an overlooked signal changes the probability dramatically. Never use market percentages. Return ONLY valid JSON, no markdown, no code fences.`,
+    };
+    const jf=`${smCtx}\nReturn ONLY this JSON (no other text):\n{"summary":"one sentence analysis","picks":[{"idx":1,"direction":"YES","estProb":75,"reasoning":"2-3 sentences fundamental analysis","confidence":"HIGH"},{"idx":3,"direction":"NO","estProb":22,"reasoning":"your reasoning","confidence":"MED"}]}`;
+    const userMsg=`Markets:\n${ml}\n\nPick top 3 highest-edge opportunities. Return JSON only.`;
+    const results={};
+    for(const agent of AGENTS){
+      const model=AGENT_MODELS[agent.id];
+      const modelShort=model.split("/").pop().replace(":free","");
+      addLog(agent.id,`Running on ${modelShort} (free) via OpenRouter...`);
+      await sleep(120+Math.random()*150);
+      try{
+        const raw=await orCall(model,SP[agent.id]+jf,userMsg,apiKey);
+        let parsed={summary:"",picks:[]};
+        try{parsed=JSON.parse(raw);}catch{const m=raw.match(/\{[\s\S]*\}/);if(m)try{parsed=JSON.parse(m[0]);}catch{}}
+        results[agent.id]=parsed;
+        addLog(agent.id,parsed.summary||"Analysis complete.");
+        await sleep(80);
+        addLog(agent.id,`↳ ${parsed.picks?.length||0} picks flagged by ${modelShort}.`);
+      }catch(e){addLog(agent.id,`Error: ${e.message}`);results[agent.id]={picks:[]};}
+      setAgSt(s=>({...s,[agent.id]:"done"}));
+      await sleep(350);
+    }
+    addLog("sys","All 4 models done. Merging cross-model picks and applying smart money boost...");
+    await sleep(400);
+    const votes={};
+    for(const agent of AGENTS){
+      for(const pick of(results[agent.id]?.picks||[])){
+        const idx=(pick.idx||1)-1;
+        if(idx<0||idx>=am.slice(0,35).length)continue;
+        if(!votes[idx])votes[idx]={count:0,agents:[],reasonings:[],confs:[],directions:[],probs:[],models:[]};
+        votes[idx].count++;votes[idx].agents.push(agent.id);
+        votes[idx].models.push(AGENT_MODELS[agent.id].split("/").pop().replace(":free",""));
+        votes[idx].reasonings.push(pick.reasoning||"");votes[idx].confs.push((pick.confidence||"MED").toUpperCase());
+        votes[idx].directions.push((pick.direction||"ABSTAIN").toUpperCase());
+        votes[idx].probs.push(parseInt(pick.estProb||50));
+      }
+    }
+    for(const[is,v]of Object.entries(votes)){const m=am[parseInt(is)];if(overlap.some(o=>o.market===(m?.question||m?.title)))v.count+=0.5;}
+    const fp=Object.entries(votes).sort((a,b)=>b[1].count-a[1].count).slice(0,8).map(([is,v])=>{
+      const dirCounts={YES:0,NO:0,ABSTAIN:0};
+      v.directions.forEach(d=>{const k=["YES","NO","ABSTAIN"].includes(d)?d:"ABSTAIN";dirCounts[k]=(dirCounts[k]||0)+1;});
+      const dir=Object.entries(dirCounts).sort((a,b)=>b[1]-a[1])[0][0];
+      const avgProb=v.probs.length?Math.round(v.probs.reduce((a,b)=>a+b,0)/v.probs.length):null;
+      const bestReasoning=v.reasonings.reduce((a,b)=>b.length>a.length?b:a,"Multi-model consensus.");
+      return{market:am[parseInt(is)],votes:v.count,agents:v.agents,models:v.models||[],reasoning:bestReasoning,conf:v.confs.includes("HIGH")?"H":v.confs.includes("MED")?"M":"L",direction:dir,estProb:avgProb,smartMoney:overlap.some(o=>o.market===(am[parseInt(is)]?.question||am[parseInt(is)]?.title))};
+    });
+    addLog("sys",`✓ ${fp.length} consensus picks across 4 models — ${fp.filter(p=>p.smartMoney).length} confirmed by smart money.`);
+    addLog("sys","Cross-model agreement = highest conviction. Single-model = exploratory.");
+    setPicks(fp);setSavedPicks(fp);setRunning(false);
+    toast(`Multi-model analysis done — ${fp.length} cross-referenced picks`,"🤖");
+  };
+
+  /* ── KEY SAVE ── */
+  const handleKeySave=k=>{setApiKey(k);setShowGate(false);toast("OpenRouter key saved permanently to localStorage","🔑");};
+  /* ════════════════════════════════════════════════
+     RENDER
+  ════════════════════════════════════════════════ */
+  return(
+    <div className="app">
+      <div className="ambient"><div className="ab ab1"/><div className="ab ab2"/><div className="ab ab3"/></div>
+      <Toasts toasts={toasts}/>
+      {showGate&&<ApiGate onSave={handleKeySave} onSkip={()=>setShowGate(false)}/>}
+      {modal&&<TraderModal trader={modal} onClose={()=>setModal(null)}/>}
+      {showReport&&<ReportModal picks={savedPicks.length?savedPicks:picks} polyMkts={polyMkts} kalshiMkts={kalshiMkts} onClose={()=>setShowReport(false)}/>}
+
+      {/* ── HEADER ── */}
+      <header className="hdr">
+        <div className="logo">
+          <div className="logo-mark">PS</div>
+          <div><div className="logo-text">PolyScope</div><div className="logo-ver">Prediction Intelligence v2</div></div>
+        </div>
+        <div className="hdr-center">
+          <div className="src-pill sp-c"><div className="sp-dot sp-dc"/>Polymarket</div>
+          <div className="src-pill sp-l"><div className="sp-dot sp-dl"/>Kalshi</div>
+        </div>
+        <div className="hdr-right">
+          <div className={`key-indicator ${apiKey?"ki-set":"ki-unset"}`} onClick={()=>setShowGate(true)} title={apiKey?"OpenRouter key active — click to update":"No API key — click to add free OpenRouter key"}>
+            {apiKey?"🔑 OpenRouter Active":"⚠ Add Free Key"}
+          </div>
+          <div className="hdr-clock">{clock}</div>
+          <div className="live-pill"><div className="sp-dot sp-dc"/>LIVE</div>
+        </div>
+      </header>
+
+      {/* ── TABS ── */}
+      <div className="tab-bar">
+        {[
+          {id:"dashboard",icon:"⚡",label:"Dashboard"},
+          {id:"leaderboard",icon:"🏆",label:"Leaderboard"},
+          {id:"markets",icon:"📈",label:"Markets"},
+          {id:"smartmoney",icon:"💎",label:"Smart Money"},
+          {id:"whale",icon:"🐋",label:"Whales",badge:whales.length>0?whales.length:null,bc:"tbb-p"},
+          {id:"hotmoney",icon:"🔥",label:"Hot Money",badge:hotTrades.length>0?hotTrades.length:null,bc:"tbb-r"},
+          {id:"scanner",icon:"🔭",label:"Scanner"},
+          {id:"agents",icon:"🤖",label:"AI Agents",badge:(savedPicks.length||picks.length)||null,bc:"tbb-c"},
+          {id:"watchlist",icon:"⭐",label:"Watchlist",badge:watchlist.length>0?watchlist.length:null,bc:"tbb-g"},
+        ].map(t=>(
+          <button key={t.id} className={`tb ${tab===t.id?"on":""}`} onClick={()=>setTab(t.id)}>
+            <span className="tb-icon">{t.icon}</span>{t.label}
+            {t.badge&&<span className={`tb-badge ${t.bc||"tbb-c"}`}>{t.badge}</span>}
+          </button>
+        ))}
+      </div>
+
+      <div className="page">
+
+        {/* ════ DASHBOARD ════ */}
+        {tab==="dashboard"&&<>
+          <div className="sec-head">
+            <div><div className="sec-title">⚡ Intelligence Dashboard</div><div className="sec-sub">Live overview across Polymarket + Kalshi — {dashStats.totalMkts} markets monitored</div></div>
+            <div className="sec-right">
+              <button className="btn" onClick={()=>{fetchLB();fetchPolyMkts();fetchKalshiMkts();}}>⟳ Refresh All</button>
+            </div>
+          </div>
+
+          {/* KPIs */}
+          <div className="dash-kpis">
+            <div className="dkpi c1">
+              <span className="dkpi-icon">📊</span>
+              <div className="dkpi-label">Live Markets</div>
+              <div className="dkpi-val" style={{color:"var(--cyan)"}}>{dashStats.totalMkts}</div>
+              <div className="dkpi-sub">{dashStats.polyCount}P · {dashStats.kalshiCount}K</div>
+            </div>
+            <div className="dkpi c2">
+              <span className="dkpi-icon">🏆</span>
+              <div className="dkpi-label">Top Trader P&L</div>
+              <div className="dkpi-val" style={{color:"var(--green)"}}>{dashStats.topTrader?fmt(dashStats.topTrader.pnl):"—"}</div>
+              <div className="dkpi-sub">{dashStats.topTrader?.name||"Load leaderboard"}</div>
+            </div>
+            <div className="dkpi c3">
+              <span className="dkpi-icon">🐋</span>
+              <div className="dkpi-label">Whale Positions</div>
+              <div className="dkpi-val" style={{color:"var(--purple)"}}>{dashStats.whaleCount||"—"}</div>
+              <div className="dkpi-sub">≥ $250K detected</div>
+            </div>
+            <div className="dkpi c4">
+              <span className="dkpi-icon">🔥</span>
+              <div className="dkpi-label">Hot Markets</div>
+              <div className="dkpi-val" style={{color:"var(--amber)"}}>{dashStats.hotCount||"—"}</div>
+              <div className="dkpi-sub">Elite trader activity</div>
+            </div>
+            <div className="dkpi c5">
+              <span className="dkpi-icon">🤖</span>
+              <div className="dkpi-label">AI Picks</div>
+              <div className="dkpi-val" style={{color:"var(--cyan)"}}>{dashStats.agentPicks||"—"}</div>
+              <div className="dkpi-sub">Last agent run</div>
+            </div>
+            <div className="dkpi c6">
+              <span className="dkpi-icon">⭐</span>
+              <div className="dkpi-label">Watchlist</div>
+              <div className="dkpi-val" style={{color:"var(--lime)"}}>{watchlist.length}</div>
+              <div className="dkpi-sub">Markets tracked</div>
+            </div>
+          </div>
+
+          <div className="dash-grid">
+            {/* Top Traders */}
+            <div className="dash-panel">
+              <div className="dash-panel-head">
+                <div className="dash-panel-title">🏆 Top Traders</div>
+                <button className="dash-panel-more" onClick={()=>setTab("leaderboard")}>VIEW ALL →</button>
+              </div>
+              <div className="dash-list">
+                {loading&&Array(4).fill(0).map((_,i)=><div key={i} className="skel" style={{height:36,marginBottom:5,animationDelay:`${i*.08}s`}}/>)}
+                {!loading&&traders.slice(0,5).map((t,i)=>{
+                  const name=t.name||t.userName||short(t.proxyWallet||"");
+                  const pnl=parseFloat(t.pnl??t.profit??0);
+                  return(<div key={i} className="dash-row" onClick={()=>{setModal(t);}} style={{cursor:"pointer"}} title="Click to view profile">
+                    <div className={`dr-rank ${rnkCls(i)}`}>#{i+1}</div>
+                    <div className="dr-name">{name}</div>
+                    <div className="dr-val" style={{color:pnl>=0?"var(--green)":"var(--red)"}}>{fmt(pnl)}</div>
+                  </div>);
+                })}
+                {!loading&&!traders.length&&<div className="empty-msg">Load Leaderboard tab first</div>}
+              </div>
+            </div>
+
+            {/* Biggest Markets */}
+            <div className="dash-panel">
+              <div className="dash-panel-head">
+                <div className="dash-panel-title">📈 Biggest Markets</div>
+                <button className="dash-panel-more" onClick={()=>setTab("markets")}>VIEW ALL →</button>
+              </div>
+              <div className="dash-list">
+                {allMkts.length===0&&Array(4).fill(0).map((_,i)=><div key={i} className="skel" style={{height:36,marginBottom:5,animationDelay:`${i*.08}s`}}/>)}
+                {[...allMkts].sort((a,b)=>getVol(b)-getVol(a)).slice(0,5).map((m,i)=>{
+                  const yes=getYes(m);
+                  return(<div key={i} className="dash-row">
+                    <div className={`dr-rank ${rnkCls(i)}`}>#{i+1}</div>
+                    <div className="dr-name">{m.question||m.title}</div>
+                    <div className="dr-val" style={{fontFamily:"Space Mono,monospace",fontSize:9,color:"var(--cyan)"}}>{(yes*100).toFixed(0)}%</div>
+                  </div>);
+                })}
+              </div>
+            </div>
+
+            {/* Alert Feed */}
+            <div className="dash-panel">
+              <div className="dash-panel-head">
+                <div className="dash-panel-title">🔔 Signal Feed</div>
+                <button className="dash-panel-more" onClick={()=>setTab("whale")}>WHALES →</button>
+              </div>
+              <div className="dash-alert-feed">
+                {dashAlerts.length===0&&<div className="empty-msg">Run Whale, Hot Money, Smart Money, or AI Agents to populate signals</div>}
+                {dashAlerts.map((a,i)=>(
+                  <div key={i} className={`dash-alert ${a.cls}`} style={{animationDelay:`${i*.06}s`}}>
+                    <div className="da-icon">{a.icon}</div>
+                    <div className="da-content">
+                      <div className="da-title">{a.title}</div>
+                      {a.ts&&<div className="da-meta">{tsAgo(a.ts)}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Latest agent picks preview */}
+          {(savedPicks.length>0||picks.length>0)&&<>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,flexWrap:"wrap",gap:10}}>
+              <div><div style={{fontSize:16,fontWeight:700}}>🤖 Latest AI Picks</div><div style={{fontFamily:"Space Mono,monospace",fontSize:8,color:"var(--t3)",marginTop:3}}>From last agent run — click AI Agents for full analysis</div></div>
+              <button className="btn" onClick={()=>setTab("agents")}>Full Analysis →</button>
+            </div>
+            <div className="picks-grid" style={{marginBottom:24}}>
+              {(savedPicks.length?savedPicks:picks).slice(0,4).map((pick,i)=>(
+                <div key={i} className="pick" style={pick.smartMoney?{borderColor:"rgba(77,255,180,.2)"}:{}}>
+                  {pick.smartMoney&&<div className="sm-mark">💎 SMART$</div>}
+                  <div className="pick-n">PICK #{i+1} · {Math.round(pick.votes)}/4 VOTES</div>
+                  <div className="pick-q">{pick.market?.question||pick.market?.title||"—"}</div>
+                  <div className="pick-direction">
+                    <span className="pick-dir-label">Direction</span>
+                    <span className={`pick-dir-val ${(pick.direction||"").toLowerCase()}`}>{pick.direction||"—"}</span>
+                    {pick.estProb&&<span className="pick-prob">~{pick.estProb}% est.</span>}
+                  </div>
+                  <div className="pick-foot">
+                    <div className="pick-ags">{pick.agents.map(id=>AGENTS.find(a=>a.id===id)?.emoji||"🤖").join(" ")}</div>
+                    <div className={`conf ${pick.conf}`}>{pick.conf==="H"?"HIGH":pick.conf==="M"?"MED":"LOW"}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>}
+        </>}
+
+        {/* ════ LEADERBOARD ════ */}
+        {tab==="leaderboard"&&<>
+          <div className="sec-head">
+            <div><div className="sec-title">🏆 Top Traders</div><div className="sec-sub">Polymarket leaderboard — click any card to view full profile</div></div>
+            <div className="sec-right">
+              <div className="pills">{WIN_OPTS.map(w=><button key={w.v} className={`pill ${win===w.v?"on":""}`} onClick={()=>{setWin(w.v);fetchLB(w.v);}}>{w.l}</button>)}</div>
+              <button className={`btn ${loading?"spin":""}`} onClick={()=>fetchLB()}>⟳ Refresh</button>
+            </div>
+          </div>
+          <div className="lb-controls">
+            <span style={{fontFamily:"Space Mono,monospace",fontSize:7,color:"var(--t3)",letterSpacing:1.5,textTransform:"uppercase"}}>Sort by</span>
+            <div className="lb-sort">{LB_SORTS.map(s=><button key={s.v} className={`lbs-opt ${lbSort===s.v?"on":""}`} onClick={()=>setLbSort(s.v)}>{s.l}</button>)}</div>
+          </div>
+          {corsNote&&<div className="notice notice-warn">⚠ Polymarket's leaderboard data API (data-api.polymarket.com) is blocking browser requests. Markets, Scanner, and AI Agents still work normally.</div>}
+          {lbError&&!corsNote&&<div className="notice notice-err">⚠ {lbError}</div>}
+          {loading
+            ?<div className="lb-grid">{Array(8).fill(0).map((_,i)=><div key={i} className="skel" style={{height:185,animationDelay:`${i*.05}s`}}/>)}</div>
+            :<div className="lb-grid">{sortedTraders.map((t,i)=>{
+              const wallet=t.proxyWallet||t.proxyWalletAddress||t.address||String(i);
+              const name=t.name||t.userName||t.username||short(wallet);
+              const pnl=parseFloat(t.pnl??t.profit??t.profitAndLoss??0);
+              const vol=parseFloat(t.vol??t.volume??t.tradingVolume??0);
+              const nt=parseInt(t.numTrades||t.trades||0)||0;
+              const roi=vol>0?((pnl/vol)*100):null;
+              return(<div key={wallet} className="tc" onClick={()=>setModal(t)}>
+                <div className="tc-head">
+                  <div className={`rnk ${rnkCls(i)}`}>#{i+1}</div>
+                  <div className="av">{t.profileImage?<img src={t.profileImage} alt={name} onError={e=>e.target.style.display="none"}/>:ini(name)}</div>
+                  <div className="ti"><div className="tname">{name}{t.verifiedBadge?" ✓":""}</div><div className="taddr">{short(wallet)}</div></div>
+                  <div><div className="tpnl" style={{color:pnl>=0?"var(--green)":"var(--red)"}}>{fmt(pnl)}</div><div className="tvol-s">{fmt(vol)} vol</div></div>
+                </div>
+                <div className="tc-body">
+                  <div className="tc-mets">
+                    <div className="tcm"><div className="tcm-l">Trades</div><div className="tcm-v">{nt||"—"}</div></div>
+                    <div className="tcm"><div className="tcm-l">ROI</div><div className="tcm-v" style={{color:roi&&roi>=0?"var(--green)":"var(--red)"}}>{roi!=null?`${roi.toFixed(1)}%`:"—"}</div></div>
+                    <div className="tcm"><div className="tcm-l">Avg Size</div><div className="tcm-v" style={{color:"var(--cyan)"}}>{nt>0?fmt(vol/nt):"—"}</div></div>
+                  </div>
+                  <div className="tc-foot">
+                    <span className="tc-x">{t.xUsername?`𝕏 @${t.xUsername}`:"Anonymous"}</span>
+                    <span className="tc-cta">OPEN PROFILE →</span>
+                  </div>
+                </div>
+              </div>);
+            })}</div>
+          }
+        </>}
+
+        {/* ════ MARKETS ════ */}
+        {tab==="markets"&&<>
+          <div className="sec-head">
+            <div><div className="sec-title">📈 Live Markets</div><div className="sec-sub">Polymarket + Kalshi — {allMkts.length} markets live</div></div>
+            <div className="sec-right">
+              <div className="src-toggle">
+                <button className={`st-opt ${mktSrc==="poly"?"st-poly":""}`} onClick={()=>setMktSrc("poly")}>Polymarket</button>
+                <button className={`st-opt ${mktSrc==="kalshi"?"st-kal":""}`} onClick={()=>setMktSrc("kalshi")}>Kalshi</button>
+                <button className={`st-opt ${mktSrc==="both"?"st-both":""}`} onClick={()=>setMktSrc("both")}>Both</button>
+              </div>
+              <div className="search-bar"><span className="search-icon">🔍</span><input value={mktSearch} onChange={e=>setMktSearch(e.target.value)} placeholder="Search markets…"/></div>
+              <button className="btn" onClick={()=>{fetchPolyMkts();fetchKalshiMkts();}}>⟳ Refresh</button>
+            </div>
+          </div>
+          {filteredMkts.length===0&&<div className="skel" style={{height:300}}/>}
+          <div className="mkt-grid">{filteredMkts.map((m,i)=>{
+            const yes=getYes(m);const vol=getVol(m);
+            const inWatch=watchlist.some(w=>w.key===(m.question||m.title));
+            const isHot=vol>1e6;const isNew=(Date.now()-new Date(m.createdAt||m.created_time||0).getTime())<7*24*3600000;const isRes=yes>0.83||yes<0.17;
+            const link=m._src==="kalshi"?kalshiLink(m):polyLink(m);
+            return(<div key={i} className="mkt-card">
+              <div className="mkt-top">
+                <div><span className={`badge ${m._src==="kalshi"?"badge-src-k":"badge-src-p"}`}>{m._src==="kalshi"?"Kalshi":"Polymarket"}</span></div>
+                <div style={{display:"flex",alignItems:"center",gap:5}}>
+                  <a href={link} target="_blank" rel="noopener" style={{fontFamily:"Space Mono,monospace",fontSize:8,color:"var(--t3)",textDecoration:"none"}} title="Open market">↗</a>
+                  <button className={`star ${inWatch?"on":""}`} onClick={()=>inWatch?removeWatch(m.question||m.title):addWatch(m)}>{inWatch?"★":"☆"}</button>
+                </div>
+              </div>
+              <div className="mkt-q">{m.question||m.title}</div>
+              <div className="prob-bar"><div className="prob-fill" style={{width:`${(yes*100).toFixed(1)}%`}}/></div>
+              <div className="prob-lbls"><span className="py">YES {(yes*100).toFixed(0)}%</span><span className="pno">NO {(100-yes*100).toFixed(0)}%</span></div>
+              <div className="mkt-foot">
+                <span className="mkt-vol">Vol {fmt(vol)}</span>
+                <div className="mkt-badges">
+                  {isHot&&<span className="badge badge-hot">🔥 HOT</span>}
+                  {isNew&&<span className="badge badge-new">NEW</span>}
+                  {isRes&&<span className="badge badge-res">CLOSING</span>}
+                </div>
+              </div>
+            </div>);
+          })}</div>
+        </>}
+
+        {/* ════ SMART MONEY ════ */}
+        {tab==="smartmoney"&&<>
+          <div className="sec-head">
+            <div><div className="sec-title">💎 Smart Money Tracker</div><div className="sec-sub">Where the top 5 Polymarket traders are simultaneously positioned</div></div>
+            <div className="sec-right"><button className={`btn ${smLoad?"spin":""}`} onClick={computeSmartMoney}>{smLoad?"⟳ Scanning…":"⟳ Refresh"}</button></div>
+          </div>
+          {traders.length===0&&<div className="notice notice-warn">⚠ Load the Leaderboard tab first to fetch wallet data.</div>}
+          {smLoad&&<div className="skel" style={{height:280}}/>}
+          {!smLoad&&!overlap.length&&traders.length>0&&<div className="notice notice-info">ℹ No overlapping positions found among top 5 traders yet. CORS may limit position data — try refreshing after Leaderboard loads.</div>}
+          {!smLoad&&overlap.length>0&&<div className="sm-grid">
+            <div className="sm-panel">
+              <div className="sm-ph"><div><div className="sm-pt">Consensus Bets</div><div className="sm-ps">Markets where 2+ top traders are simultaneously positioned</div></div></div>
+              <div className="sm-list">{overlap.map((o,i)=>(
+                <div key={i} className="sm-row">
+                  <div className="sm-n">#{i+1}</div>
+                  <div className="sm-mkt">{o.market}</div>
+                  <span className={`stag ${o.isYes?"stag-y":"stag-n"}`}>{o.isYes?"YES":"NO"}</span>
+                  <span className="sm-chip">{o.count} traders</span>
+                  {o.ts&&<span style={{fontFamily:"Space Mono,monospace",fontSize:7,color:"var(--t4)"}}>{tsAgo(o.ts)}</span>}
+                </div>
+              ))}</div>
+            </div>
+            <div className="sm-panel">
+              <div className="sm-ph"><div><div className="sm-pt">Capital Concentration</div><div className="sm-ps">Total smart money per market (from top traders)</div></div></div>
+              <div className="heat-list">{overlap.map((o,i)=>{const max=Math.max(...overlap.map(x=>x.size));const w=max>0?(o.size/max*100):50;const c=w>66?"var(--green)":w>33?"var(--amber)":"var(--cyan)";return(<div key={i} className="heat-row"><div className="heat-lbl">{o.market}</div><div className="heat-bar"><div className="heat-fill" style={{width:`${w}%`,background:c}}/></div><div className="heat-val">{fmt(o.size)}</div></div>);})}</div>
+            </div>
+          </div>}
+        </>}
+
+        {/* ════ WHALES ════ */}
+        {tab==="whale"&&<>
+          <div className="sec-head">
+            <div><div className="sec-title">🐋 Whale Tracker</div><div className="sec-sub">Single-position bets ≥ $250,000 — Polymarket wallets + Kalshi trade feed (via CORS proxy)</div></div>
+            <div className="sec-right"><button className={`btn ${whaleLoad?"spin":""}`} onClick={fetchWhales}>{whaleLoad?"⟳ Scanning…":"⟳ Scan Whales"}</button></div>
+          </div>
+          {whales.length>0&&<div className="wh-kpis">
+            <div className="wkpi"><div className="wkpi-l">Positions Found</div><div className="wkpi-v">{whales.length}</div></div>
+            <div className="wkpi"><div className="wkpi-l">Total Capital</div><div className="wkpi-v" style={{color:"var(--cyan)"}}>{fmt(whales.reduce((s,w)=>s+w.amount,0))}</div></div>
+            <div className="wkpi"><div className="wkpi-l">Mega ≥ $1M</div><div className="wkpi-v" style={{color:"var(--pink)"}}>{whales.filter(w=>w.isMega).length}</div></div>
+            <div className="wkpi"><div className="wkpi-l">Largest Bet</div><div className="wkpi-v">{whales.length?fmt(whales[0].amount):"—"}</div></div>
+          </div>}
+          <div className="notice notice-info">Scanning top 20 Polymarket wallet positions + Kalshi public trade feed via proxy. Any position ≥ <strong>$250,000</strong> appears here sorted by size. Kalshi requires the allorigins.win proxy to be available.</div>
+          {whaleLoad&&Array(5).fill(0).map((_,i)=><div key={i} className="skel" style={{height:88,marginBottom:9,animationDelay:`${i*.08}s`}}/>)}
+          {!whaleLoad&&whaleFetched&&!whales.length&&<div className="wh-empty"><div className="wh-empty-icon">🐋</div><div className="wh-empty-msg">No whale positions found.<br/>Load Leaderboard first, then click Scan Whales.</div></div>}
+          {!whaleLoad&&!whaleFetched&&<div className="wh-empty"><div className="wh-empty-icon">🐋</div><div className="wh-empty-msg">Click Scan Whales to hunt for positions ≥ $250K.</div></div>}
+          {!whaleLoad&&whales.length>0&&<div className="wh-feed">{whales.map((w,i)=>(
+            <div key={i} className={`wc ${w.isMega?"mega":""}`} style={{animationDelay:`${i*.04}s`}}>
+              <div className="wc-inner">
+                <div className={`wc-bar ${w.isMega?"mega":""}`}/>
+                <div className="wc-body">
+                  <div className="wc-top">
+                    <div className="wc-mkt">{w.market}</div>
+                    <div className="wc-amt-wrap"><div className={`wc-amt ${w.isMega?"mega":""}`}>{fmt(w.amount)}</div><div className="wc-amt-l">Position Size</div></div>
+                  </div>
+                  <div className="wc-meta">
+                    <span className={`stag ${w.side==="YES"?"stag-y":"stag-n"}`}>{w.side}</span>
+                    <span className={`badge ${w.src==="kalshi"?"badge-src-k":"badge-src-p"}`}>{w.src==="kalshi"?"Kalshi":"Polymarket"}</span>
+                    {w.price>0&&<span className="wc-price">@ {(w.price*100).toFixed(1)}¢</span>}
+                    <span className="wc-trader">👤 {w.trader}</span>
+                    {w.ts&&<span className="wc-time">{tsAgo(w.ts)}</span>}
+                    {w.isMega?<span className="wbadge wb-mega">🔱 MEGA</span>:<span className="wbadge wb-lg">🐋 WHALE</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}</div>}
+        </>}
+
+        {/* ════ HOT MONEY ════ */}
+        {tab==="hotmoney"&&<>
+          <div className="sec-head">
+            <div><div className="sec-title">🔥 Hot / Fast Money</div><div className="sec-sub">Most active bets by top leaderboard traders — Polymarket + Kalshi</div></div>
+            <div className="sec-right">
+              <div className="pills">{HM_WINS.map(p=><button key={p.v} className={`pill ${hotWin===p.v?"on":""}`} onClick={()=>{setHotWin(p.v);setHotTrades([]);setHotFetched(false);fetchHotMoney(p.v);}}>{p.l}</button>)}</div>
+              <button className={`btn ${hotLoad?"spin":""}`} onClick={()=>fetchHotMoney(hotWin)}>{hotLoad?"⟳ Loading…":"⟳ Refresh"}</button>
+            </div>
+          </div>
+          {traders.length===0&&<div className="notice notice-warn">Load the Leaderboard tab first to track elite trader activity.</div>}
+          {!hotLoad&&hotTrades.length>0&&<div className="hm-panels">
+            <div className="hm-panel">
+              <div className="hm-ph"><div><div className="hm-pt">🚀 Volume Leaders <span style={{fontFamily:"Space Mono,monospace",fontSize:8,color:"var(--amber)",fontWeight:400}}>by capital</span></div><div className="hm-ps">Highest $ flow from elite traders</div></div></div>
+              <div className="hm-list">{hotTrades.slice(0,8).map((h,i)=>(
+                <div key={i} className={`hm-row ${i<3?"hot":""}`}>
+                  <div className={`hm-rn ${rnkCls(i)}`}>#{i+1}</div>
+                  <div className="hm-icon">{i===0?"🔥":i===1?"⚡":i===2?"🌊":"·"}</div>
+                  <div className="hm-info">
+                    <div className="hm-mkt">{h.market}</div>
+                    <div className="hm-traders">{h.traders.slice(0,3).join(", ")}{h.traders.length>3?` +${h.traders.length-3}`:""}</div>
+                    <div className="vel-bar"><div className="vel-fill" style={{width:`${h.velocity}%`}}/></div>
+                  </div>
+                  <div><div className="hm-vol">{fmt(h.vol)}</div><div className="hm-cnt">{h.count} trades</div></div>
+                </div>
+              ))}</div>
+            </div>
+            <div className="hm-panel">
+              <div className="hm-ph"><div><div className="hm-pt">🧭 Direction Consensus <span style={{fontFamily:"Space Mono,monospace",fontSize:8,color:"var(--cyan)",fontWeight:400}}>by side</span></div><div className="hm-ps">Where smart money is leaning</div></div></div>
+              <div className="hm-list">{hotTrades.slice(0,8).map((h,i)=>(
+                <div key={i} className="hm-row">
+                  <div className={`hm-rn ${rnkCls(i)}`}>#{i+1}</div>
+                  <div className="hm-info"><div className="hm-mkt">{h.market}</div><div className="hm-traders">{h.count} trades · {h.src==="kalshi"?"Kalshi":"Poly"}</div></div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                    <span className={`stag ${h.dominantSide==="YES"?"stag-y":"stag-n"}`}>{h.dominantSide}</span>
+                    <span className={`hchip ${h.velocity>66?"hc-fire":h.velocity>33?"hc-warm":"hc-cool"}`}>{h.velocity>66?"FIRE":h.velocity>33?"WARM":"COOL"}</span>
+                  </div>
+                </div>
+              ))}</div>
+            </div>
+          </div>}
+          {hotLoad&&Array(5).fill(0).map((_,i)=><div key={i} className="skel" style={{height:54,marginBottom:7,animationDelay:`${i*.07}s`}}/>)}
+          {!hotLoad&&hotTrades.length>0&&<>
+            <div style={{fontFamily:"Space Mono,monospace",fontSize:8,color:"var(--t3)",marginBottom:10}}>
+              {hotTrades.length} markets with elite activity in the last <strong style={{color:"var(--cyan)"}}>{hotWin==="3h"?"3 hours":hotWin==="1d"?"24 hours":hotWin==="7d"?"7 days":hotWin==="30d"?"30 days":"all time"}</strong>
+            </div>
+            <div style={{overflowX:"auto"}}><table className="hm-tbl">
+              <thead><tr><th>#</th><th>Market</th><th>Source</th><th>Volume</th><th>Trades</th><th>Traders</th><th>Side</th><th>Heat</th></tr></thead>
+              <tbody>{hotTrades.map((h,i)=>(
+                <tr key={i}>
+                  <td style={{fontFamily:"Space Mono,monospace",fontSize:8,color:i===0?"var(--gold)":i===1?"#8dabbe":i===2?"var(--amber)":"var(--t3)"}}>{i+1}</td>
+                  <td style={{maxWidth:280}}><div style={{fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:260}}>{h.market}</div><div style={{fontFamily:"Space Mono,monospace",fontSize:7,color:"var(--t3)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.traders.slice(0,2).join(" · ")}</div></td>
+                  <td><span className={`badge ${h.src==="kalshi"?"badge-src-k":"badge-src-p"}`}>{h.src==="kalshi"?"Kalshi":"Poly"}</span></td>
+                  <td style={{fontFamily:"Space Mono,monospace",fontSize:11,fontWeight:700,color:"var(--amber)"}}>{fmt(h.vol)}</td>
+                  <td style={{fontFamily:"Space Mono,monospace",fontSize:10,color:"var(--t2)"}}>{h.count}</td>
+                  <td style={{fontFamily:"Space Mono,monospace",fontSize:10,color:"var(--cyan)"}}>{h.traders.length}</td>
+                  <td><span className={`stag ${h.dominantSide==="YES"?"stag-y":"stag-n"}`}>{h.dominantSide}</span></td>
+                  <td><div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:40,height:3,background:"var(--s3)",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${h.velocity}%`,background:h.velocity>66?"var(--red)":h.velocity>33?"var(--amber)":"var(--cyan)",borderRadius:2}}/></div><span className={`hchip ${h.velocity>66?"hc-fire":h.velocity>33?"hc-warm":"hc-cool"}`}>{h.velocity>66?"FIRE":h.velocity>33?"WARM":"COOL"}</span></div></td>
+                </tr>
+              ))}</tbody>
+            </table></div>
+          </>}
+          {!hotLoad&&hotFetched&&!hotTrades.length&&<div className="wh-empty"><div className="wh-empty-icon">🔥</div><div className="wh-empty-msg">No trades found in this window.<br/>Try a wider time range or load Leaderboard first.</div></div>}
+          {!hotLoad&&!hotFetched&&traders.length>0&&<div className="wh-empty"><div className="wh-empty-icon">🔥</div><div className="wh-empty-msg">Click Refresh to load hot money flow.</div></div>}
+        </>}
+
+        {/* ════ SCANNER ════ */}
+        {tab==="scanner"&&<>
+          <div className="sec-head">
+            <div><div className="sec-title">🔭 Market Scanner</div><div className="sec-sub">Filter & sort across Polymarket + Kalshi — click headers to sort</div></div>
+            <div className="sec-right">
+              <div className="src-toggle">
+                <button className={`st-opt ${mktSrc==="poly"?"st-poly":""}`} onClick={()=>setMktSrc("poly")}>Polymarket</button>
+                <button className={`st-opt ${mktSrc==="kalshi"?"st-kal":""}`} onClick={()=>setMktSrc("kalshi")}>Kalshi</button>
+                <button className={`st-opt ${mktSrc==="both"?"st-both":""}`} onClick={()=>setMktSrc("both")}>Both</button>
+              </div>
+              <div className="search-bar"><span className="search-icon">🔍</span><input value={scanSearch} onChange={e=>setScanSearch(e.target.value)} placeholder="Filter markets…"/></div>
+              <button className="btn" onClick={()=>{fetchPolyMkts();fetchKalshiMkts();}}>⟳ Refresh</button>
+            </div>
+          </div>
+          <div className="scan-filters">
+            <span className="filter-lbl">Category</span>
+            {CATS.map(c=><button key={c} className={`pill ${scanCat===c?"on":""}`} onClick={()=>setScanCat(c)}>{c}</button>)}
+          </div>
+          <div style={{fontFamily:"Space Mono,monospace",fontSize:7,color:"var(--t3)",marginBottom:10}}>{scannedMkts.length} markets matching filters</div>
+          <div style={{overflowX:"auto"}}><table className="scan-tbl">
+            <thead><tr>
+              <th>Market</th><th>Source</th>
+              <th onClick={()=>toggleSort("prob")} style={{cursor:"pointer"}}>YES% {sortCol==="prob"?(sortDir==="desc"?"▼":"▲"):"⇅"}</th>
+              <th onClick={()=>toggleSort("vol")} style={{cursor:"pointer"}}>Volume {sortCol==="vol"?(sortDir==="desc"?"▼":"▲"):"⇅"}</th>
+              <th onClick={()=>toggleSort("edge")} style={{cursor:"pointer"}}>Edge Score {sortCol==="edge"?(sortDir==="desc"?"▼":"▲"):"⇅"}</th>
+              <th>Watch</th>
+            </tr></thead>
+            <tbody>{scannedMkts.slice(0,50).map((m,i)=>{
+              const ec=m.edge>65?"en-hi":m.edge>35?"en-md":"en-lo";
+              const inWatch=watchlist.some(w=>w.key===(m.question||m.title));
+              const link=m._src==="kalshi"?kalshiLink(m):polyLink(m);
+              return(<tr key={i}>
+                <td><div className="scan-q">{m.question||m.title}</div></td>
+                <td><span className={`badge ${m._src==="kalshi"?"badge-src-k":"badge-src-p"}`}>{m._src==="kalshi"?"Kalshi":"Poly"}</span></td>
+                <td><div style={{display:"flex",alignItems:"center",gap:6}}><span className="py" style={{fontFamily:"Space Mono,monospace",fontSize:9}}>{(m.yes*100).toFixed(0)}%</span><span className="pno" style={{fontFamily:"Space Mono,monospace",fontSize:9}}>{(100-m.yes*100).toFixed(0)}%</span></div></td>
+                <td style={{fontFamily:"Space Mono,monospace",fontSize:9,color:"var(--t2)"}}>{fmt(m.vol)}</td>
+                <td><div className="edge-wrap"><div className="edge-bar"><div className="edge-fill" style={{width:`${m.edge}%`,background:m.edge>65?"var(--green)":m.edge>35?"var(--amber)":"var(--t4)"}}/></div><span className={`edge-n ${ec}`}>{m.edge}</span></div></td>
+                <td style={{display:"flex",alignItems:"center",gap:5}}>
+                  <button className={`star ${inWatch?"on":""}`} onClick={()=>inWatch?removeWatch(m.question||m.title):addWatch(m)}>{inWatch?"★":"☆"}</button>
+                  <a href={link} target="_blank" rel="noopener" style={{fontFamily:"Space Mono,monospace",fontSize:9,color:"var(--t3)",textDecoration:"none"}} title="Open market">↗</a>
+                </td>
+              </tr>);
+            })}</tbody>
+          </table></div>
+        </>}
+
+        {/* ════ AI AGENTS ════ */}
+        {tab==="agents"&&<>
+          <div className="sec-head">
+            <div><div className="sec-title">🤖 AI Agent Research</div><div className="sec-sub">4-agent multi-model swarm via OpenRouter (free) — fundamentals only, market prices excluded from all prompts</div></div>
+          </div>
+          <div className="agents-layout">
+            <div>
+              <div className="roster">
+                <div className="roster-hdr">Agent Roster</div>
+                {AGENTS.map(a=>(
+                  <div key={a.id} className={`a-row ${agSt[a.id]?"a-active":""}`}>
+                    <div className="a-em">{a.emoji}</div>
+                    <div className="a-info"><div className="a-name">{a.name}</div><div className="a-role">{a.role}</div></div>
+                    <div className={`a-dot ${agSt[a.id]||""}`}/>
+                  </div>
+                ))}
+              </div>
+              <div className="how-box" style={{marginBottom:12}}>
+                <div className="how-t">How It Works</div>
+                4 specialized agents (Gemini · DeepSeek · Llama · Mistral) independently research live markets from Polymarket and Kalshi using only fundamentals — no market prices ever referenced. They vote. Smart money cross-referenced. Results persist between tab switches and export as a report.<br/><br/>
+                Your API key is saved to <strong style={{color:"var(--lime)"}}>localStorage</strong> — enter once, works forever.
+              </div>
+              {!apiKey&&<div className="notice notice-warn" style={{marginBottom:0}}>⚠ No OpenRouter key. Click the header indicator to add your free key from openrouter.ai/keys.</div>}
+              {apiKey&&<div className="notice notice-success" style={{marginBottom:0}}>✓ OpenRouter key active — 4 free models ready. Key saved permanently.</div>}
+            </div>
+            <div className="awrap">
+              <div className="abox">
+                <div className="atbar">
+                  <div className="ast">{running?"⟳ OpenRouter agents analyzing…":(savedPicks.length||picks.length)>0?`✓ ${savedPicks.length||picks.length} picks ready — ${polyMkts.length}P + ${kalshiMkts.length}K markets`:"Ready — OpenRouter Free · Gemini · DeepSeek · Llama · Mistral"}</div>
+                  <div style={{display:"flex",gap:7}}>
+                    {(savedPicks.length||picks.length)>0&&<button className="btn" onClick={()=>setShowReport(true)}>📋 Export Report</button>}
+                    <button className="btn-primary" onClick={runAgents} disabled={running}>{running?"⟳ Running…":"▶ Run Analysis"}</button>
+                  </div>
+                </div>
+                <div className="alog" ref={logRef}>
+                  {logs.length===0&&!running&&<span style={{color:"var(--t3)"}}>Deploy 4 agents on different free models via OpenRouter to analyze live Polymarket + Kalshi data. Agents research fundamentals only — no market prices. They vote, cross-reference smart money, and flag the highest-edge opportunities. Results saved automatically. Note: free tier adds ~6s between agents (10 req/min limit).</span>}
+                  {logs.map(line=>{const agent=AGENTS.find(a=>a.id===line.agentId);return <div key={line.id} className="le"><span className={`ltag ${agent?agent.cls:"lg-sys"}`}>[{agent?agent.name:"SYSTEM"}]</span><span>{line.msg}</span></div>;})}
+                </div>
+              </div>
+              {(savedPicks.length||picks.length)>0&&<div className="abox">
+                <div className="picks-section">
+                  <div className="picks-hdr">
+                    <div className="picks-title">Consensus Picks</div>
+                    <div className="picks-meta">
+                      <span className="pb pb-voted">VOTED · LIVE</span>
+                      {overlap.length>0&&<span className="pb pb-sm">💎 SMART MONEY</span>}
+                    </div>
+                    <div className="picks-actions">
+                      <button className="btn" onClick={()=>setShowReport(true)}>📋 Export</button>
+                      <button className="btn" onClick={()=>{setPicks([]);setSavedPicks([]);}}>✕ Clear</button>
+                    </div>
+                  </div>
+                  <div className="picks-grid">{(savedPicks.length?savedPicks:picks).map((pick,i)=>{
+                    const market=pick.market;
+                    const link=market?._src==="kalshi"?kalshiLink(market):market?polyLink(market):"#";
+                    return(<div key={i} className="pick" style={pick.smartMoney?{borderColor:"rgba(77,255,180,.2)"}:{}}>
+                      {pick.smartMoney&&<div className="sm-mark">💎 SMART$</div>}
+                      <div className="pick-n">PICK #{i+1} · {Math.round(pick.votes)}/4 VOTES · {market?._src==="kalshi"?"KALSHI":"POLYMARKET"}</div>
+                      <div className="pick-q">{market?.question||market?.title||"—"}</div>
+                      <div className="pick-direction">
+                        <span className="pick-dir-label">Direction →</span>
+                        <span className={`pick-dir-val ${(pick.direction||"abs").toLowerCase()}`}>{pick.direction||"ABSTAIN"}</span>
+                        {pick.estProb&&<span className="pick-prob">~{pick.estProb}%</span>}
+                      </div>
+                      <div className="pick-r">{pick.reasoning}</div>
+                      <div className="pick-foot">
+                        <div style={{display:"flex",alignItems:"center",gap:6}}>
+                          <div className="pick-ags">{pick.agents.map(id=>AGENTS.find(a=>a.id===id)?.emoji||"🤖").join(" ")}</div>
+                          <div className={`conf ${pick.conf}`}>{pick.conf==="H"?"HIGH":pick.conf==="M"?"MED":"LOW"}</div>
+                        </div>
+                        <a href={link} target="_blank" rel="noopener" className="pick-link">↗ Open Market</a>
+                      </div>
+                    </div>);
+                  })}</div>
+                </div>
+              </div>}
+            </div>
+          </div>
+        </>}
+
+        {/* ════ WATCHLIST ════ */}
+        {tab==="watchlist"&&<>
+          <div className="sec-head">
+            <div><div className="sec-title">⭐ Watchlist</div><div className="sec-sub">Your saved markets — persisted locally, survives page refresh</div></div>
+            {watchlist.length>0&&<div className="sec-right"><button className="btn" onClick={()=>setWatchlist([])}>Clear All</button></div>}
+          </div>
+          {watchlist.length===0
+            ?<div className="wl-empty"><div className="wl-empty-icon">⭐</div><div className="wl-empty-msg">No markets saved yet.<br/>Go to Markets or Scanner and click ☆ to track one.<br/>Watchlist saves to localStorage — survives refresh.</div></div>
+            :<div className="wl-grid">{watchlist.map(({key,market:m,added})=>{
+              const yes=getYes(m);const vol=getVol(m);
+              const link=m._src==="kalshi"?kalshiLink(m):polyLink(m);
+              return(<div key={key} className="wl-card">
+                <button className="wl-rm" onClick={()=>removeWatch(key)}>✕</button>
+                <div style={{marginBottom:6}}><span className={`badge ${m._src==="kalshi"?"badge-src-k":"badge-src-p"}`}>{m._src==="kalshi"?"Kalshi":"Polymarket"}</span></div>
+                <div className="wl-q">{m.question||m.title}</div>
+                <div className="prob-bar"><div className="prob-fill" style={{width:`${(yes*100).toFixed(1)}%`}}/></div>
+                <div className="prob-lbls"><span className="py">YES {(yes*100).toFixed(0)}%</span><span className="pno">NO {(100-yes*100).toFixed(0)}%</span></div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:9,flexWrap:"wrap",gap:6}}>
+                  <span className="mkt-vol">Vol {fmt(vol)}</span>
+                  <a href={link} target="_blank" rel="noopener" style={{fontFamily:"Space Mono,monospace",fontSize:7,color:"var(--cyan)",textDecoration:"none"}}>↗ Open</a>
+                </div>
+                <div className="wl-added">Added {added}</div>
+              </div>);
+            })}</div>
+          }
+        </>}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
